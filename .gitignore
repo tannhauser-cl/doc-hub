@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.js.map
+.env
+tenant.config.json
+apps-script/.clasp.json
+mcp-server/dist/

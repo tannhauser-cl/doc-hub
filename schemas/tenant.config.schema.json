@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tenant.config.schema.json",
+  "title": "Tenant Configuration",
+  "description": "Per-tenant configuration that connects the doc-hub engine to a specific Google Workspace shared drive and brand pack. Lives in the tenant's Drive root, never in the engine repo.",
+  "type": "object",
+  "required": [
+    "tenantId",
+    "sharedDriveId",
+    "brandKitFolderId",
+    "registrySheetId",
+    "manifestSheetId",
+    "importsFolderId",
+    "trashFolderId",
+    "adminEmail"
+  ],
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "description": "Unique identifier for this tenant (e.g. 'kuill'). Used as prefix in Registry created_by entries.",
+      "example": "kuill"
+    },
+    "sharedDriveId": {
+      "type": "string",
+      "description": "Google Shared Drive ID (the root of DOC HUB).",
+      "example": "0AO_V31CVzrqnUk9PVA"
+    },
+    "brandKitFolderId": {
+      "type": "string",
+      "description": "Drive folder ID containing brand-tokens.json, logos, and master templates."
+    },
+    "registrySheetId": {
+      "type": "string",
+      "description": "Google Sheets file ID for the Document-Registry spreadsheet."
+    },
+    "auditTrailSheetId": {
+      "type": "string",
+      "description": "Google Sheets file ID for the Audit-Trail spreadsheet."
+    },
+    "manifestSheetId": {
+      "type": "string",
+      "description": "Google Sheets file ID for the _manifest spreadsheet (template catalog)."
+    },
+    "importsFolderId": {
+      "type": "string",
+      "description": "Drive folder ID for _Imports/ — landing zone for files uploaded from outside the system."
+    },
+    "trashFolderId": {
+      "type": "string",
+      "description": "Drive folder ID for _Trash/ — soft-deleted docs live here before TTL purge."
+    },
+    "snapshotsFolderName": {
+      "type": "string",
+      "default": "Snapshots",
+      "description": "Name of the Snapshots subfolder created inside each domain folder."
+    },
+    "archiveFolderName": {
+      "type": "string",
+      "default": "Archive",
+      "description": "Name of the Archive subfolder created inside each domain folder."
+    },
+    "adminEmail": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the tenant admin. Receives linter reports and critical alerts.",
+      "example": "admin@example.com"
+    },
+    "notifyEmail": {
+      "type": "string",
+      "format": "email",
+      "description": "Email for operational notifications (defaults to adminEmail if omitted)."
+    },
+    "trash": {
+      "type": "object",
+      "description": "TTL configuration for the _Trash/ folder.",
+      "properties": {
+        "docTtlDays": {
+          "type": "integer",
+          "default": 30,
+          "description": "Days before a soft-deleted doc is permanently purged."
+        },
+        "snapshotTtlDays": {
+          "type": "integer",
+          "default": 90,
+          "description": "Days before a soft-deleted snapshot PDF is permanently purged."
+        }
+      }
+    },
+    "lock": {
+      "type": "object",
+      "description": "Soft lock configuration for concurrent edit protection.",
+      "properties": {
+        "defaultTtlMinutes": {
+          "type": "integer",
+          "default": 30,
+          "description": "Default lock TTL in minutes. Locks auto-expire after this time."
+        }
+      }
+    },
+    "linter": {
+      "type": "object",
+      "description": "Anti-proliferation linter settings.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "orphanWarningDays": {
+          "type": "integer",
+          "default": 7,
+          "description": "Flag files in _Imports/ that haven't been adopted after this many days."
+        },
+        "similarityThreshold": {
+          "type": "number",
+          "default": 0.85,
+          "description": "Levenshtein similarity ratio above which two filenames are flagged as duplicates."
+        },
+        "forbiddenPatterns": {
+          "type": "array",
+          "default": ["FINAL", "_v\\d+", "\\(\\d+\\)", "Copy of", "DRAFT_", "WIP_", "OLD_"],
+          "description": "Regex patterns in filenames that trigger a naming violation."
+        }
+      }
+    },
+    "webAppUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Deployed Apps Script Web App URL. Set after first clasp deploy."
+    }
+  },
+  "additionalProperties": false
+}

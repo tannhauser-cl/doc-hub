@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "registry.schema.json",
+  "title": "Document Registry Row",
+  "description": "One row in the Document-Registry Google Sheet. Every document that exists in DOC HUB has exactly one active row here.",
+  "type": "object",
+  "required": ["doc_id", "file_id", "name", "category", "folder_path", "template_id", "status", "created_by", "created_at"],
+  "properties": {
+    "doc_id": {
+      "type": "string",
+      "description": "UUID generated at creation time. Stable across renames and moves.",
+      "format": "uuid"
+    },
+    "file_id": {
+      "type": "string",
+      "description": "Google Drive file ID. Used to open, edit, and snapshot the document."
+    },
+    "name": {
+      "type": "string",
+      "description": "Current file name in Drive (without extension). Follows naming convention."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["Legal", "Comercial", "Internos", "Governance", "__adhoc-blank", "__adopted"],
+      "description": "Document category."
+    },
+    "folder_path": {
+      "type": "string",
+      "description": "Human-readable Drive path from DOC HUB root (e.g. 'Management/Legal')."
+    },
+    "folder_id": {
+      "type": "string",
+      "description": "Drive folder ID of the current parent folder."
+    },
+    "template_id": {
+      "type": "string",
+      "description": "ID of the manifest template used to create this doc. '__adhoc-blank' or '__adopted' for non-template docs."
+    },
+    "template_version": {
+      "type": "string",
+      "description": "Version of the template at creation time (semver string)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "review", "approved", "published", "archived"],
+      "description": "Lifecycle status. Default queries filter out 'archived'. Agents should surface status to user."
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Identifier of who created this doc. Format: 'human:<email>' or 'agent:<agent-id>'.",
+      "example": "agent:claude-code"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of creation."
+    },
+    "last_edited_by": {
+      "type": "string",
+      "description": "Identifier of last editor (same format as created_by)."
+    },
+    "last_edited_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last edit via the engine."
+    },
+    "owner": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the responsible owner for this document."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["internal", "external"],
+      "description": "Whether this document is for internal use or external distribution. Affects default share permissions."
+    },
+    "locked_by": {
+      "type": "string",
+      "description": "If set, the doc has a soft lock. Format: 'human:<email>' or 'agent:<id>'. Empty string = unlocked."
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the lock automatically expires."
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "doc_id of the document this one supersedes (if this is a major version replacement)."
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "doc_id of the document that superseded this one. When set, this doc is effectively archived."
+    },
+    "snapshots_json": {
+      "type": "string",
+      "description": "JSON array string of snapshot records: [{url, hash, created_by, created_at}]. Appended on each doc-snapshot call."
+    },
+    "imported_from": {
+      "type": "string",
+      "description": "Original filename if this doc was created via doc-adopt from _Imports/."
+    },
+    "brand_check_status": {
+      "type": "string",
+      "enum": ["ok", "violations", "unchecked"],
+      "default": "unchecked",
+      "description": "Result of the last brand-check run."
+    },
+    "brand_check_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last brand-check."
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Direct Google Drive URL to open this document."
+    }
+  },
+  "additionalProperties": false
+}

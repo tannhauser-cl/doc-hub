@@ -1,0 +1,27 @@
+{
+  "_comment": "Copy this to tenant.config.json and fill in your Google Drive IDs. Never commit tenant.config.json — it is per-tenant and may contain sensitive IDs.",
+  "tenantId": "your-org-slug",
+  "sharedDriveId": "REPLACE_WITH_SHARED_DRIVE_ID",
+  "brandKitFolderId": "REPLACE_WITH_BRAND_KIT_FOLDER_ID",
+  "registrySheetId": "REPLACE_WITH_REGISTRY_SHEET_ID",
+  "auditTrailSheetId": "REPLACE_WITH_AUDIT_TRAIL_SHEET_ID",
+  "manifestSheetId": "REPLACE_WITH_MANIFEST_SHEET_ID",
+  "importsFolderId": "REPLACE_WITH_IMPORTS_FOLDER_ID",
+  "trashFolderId": "REPLACE_WITH_TRASH_FOLDER_ID",
+  "adminEmail": "admin@yourorg.com",
+  "notifyEmail": "admin@yourorg.com",
+  "trash": {
+    "docTtlDays": 30,
+    "snapshotTtlDays": 90
+  },
+  "lock": {
+    "defaultTtlMinutes": 30
+  },
+  "linter": {
+    "enabled": true,
+    "orphanWarningDays": 7,
+    "similarityThreshold": 0.85,
+    "forbiddenPatterns": ["FINAL", "_v\\d+", "\\(\\d+\\)", "Copy of", "DRAFT_", "WIP_", "OLD_"]
+  },
+  "webAppUrl": "REPLACE_AFTER_CLASP_DEPLOY"
+}

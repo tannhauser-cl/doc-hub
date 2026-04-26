@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "manifest.schema.json",
+  "title": "Template Manifest Row",
+  "description": "One row in the _manifest Google Sheet. Defines a document template available to humans and agents.",
+  "type": "object",
+  "required": ["id", "category", "name", "description", "template_file_id", "output_folder_id", "naming_pattern", "tokens_schema", "required_inputs", "owner", "version", "active"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable kebab-case identifier for this template (e.g. 'nda-kuill-pilot'). Never changes.",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["Legal", "Comercial", "Internos", "Governance", "__adhoc-blank", "__adopted"],
+      "description": "Top-level category. Matches the Doc-templates/ subfolder."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable display name shown in sidebar and agent catalog (e.g. 'NDA Kuill Pilot')."
+    },
+    "description": {
+      "type": "string",
+      "description": "One-sentence description shown to humans and fed to LLM for template selection."
+    },
+    "template_file_id": {
+      "type": "string",
+      "description": "Drive file ID of the master template document (Google Doc/Slides/Sheet with {{TOKEN}} placeholders)."
+    },
+    "output_folder_id": {
+      "type": "string",
+      "description": "Drive folder ID where generated documents are placed."
+    },
+    "naming_pattern": {
+      "type": "string",
+      "description": "Go-style template for the output document name. Tokens: {{cliente}}, {{YYYY-MM}}, {{role}}, etc. Must produce a name with no spaces (use hyphens).",
+      "example": "NDA-Kuill-Pilot-{{cliente}}-{{YYYY-MM}}"
+    },
+    "tokens_schema": {
+      "type": "string",
+      "description": "JSON string of a simplified schema: {\"tokenName\": {\"type\": \"string\", \"description\": \"...\", \"required\": true}}. Stored as JSON string in the Sheet cell."
+    },
+    "required_inputs": {
+      "type": "string",
+      "description": "JSON array string of token names that MUST be provided before rendering. Agent returns MISSING_INPUTS if any are absent.",
+      "example": "[\"cliente\", \"fecha\", \"scope\"]"
+    },
+    "suggested_sources": {
+      "type": "string",
+      "description": "JSON array string of Drive folder paths or keywords the agent should search before generating. Helps doc-context assemble the input pack.",
+      "example": "[\"Management/Investors\", \"KUILL-handoff\", \"Management/Finance\"]"
+    },
+    "doc_type": {
+      "type": "string",
+      "enum": ["document", "presentation", "spreadsheet"],
+      "default": "document",
+      "description": "Type of the master template, determines which Google App to use when cloning."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Email of the template owner (responsible for keeping it up to date)."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver of the template (e.g. '1.0.0'). Recorded in Registry when a doc is generated from this template."
+    },
+    "active": {
+      "type": "boolean",
+      "description": "If false, template is hidden from sidebar catalog and not returned by listTemplates."
+    }
+  },
+  "additionalProperties": false
+}

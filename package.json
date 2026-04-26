@@ -1,0 +1,21 @@
+{
+  "name": "doc-hub",
+  "version": "0.1.0",
+  "description": "Document management engine for Google Workspace — bring your own brand pack",
+  "license": "MIT",
+  "private": false,
+  "workspaces": [
+    "mcp-server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=mcp-server",
+    "setup-drive": "ts-node scripts/setup-drive.ts",
+    "clasp:push": "cd apps-script && clasp push",
+    "clasp:pull": "cd apps-script && clasp pull",
+    "lint": "npm run lint --workspace=mcp-server"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2"
+  }
+}

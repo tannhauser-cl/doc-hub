@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>doc-hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg: #f8f7fc;
+      --color-surface: #ffffff;
+      --color-navy: #1a1a2e;
+      --color-lavender: #e8e0f5;
+      --color-purple: #6c47b8;
+      --color-purple-light: #8b67d6;
+      --color-purple-dark: #5234a0;
+      --color-text: #1a1a2e;
+      --color-text-secondary: #5a5a7a;
+      --color-border: #e0d9f0;
+      --color-success: #22c55e;
+      --color-error: #ef4444;
+      --color-warning: #f59e0b;
+      --radius: 8px;
+      --radius-sm: 4px;
+      --shadow: 0 1px 4px rgba(26,26,46,0.08);
+      --shadow-md: 0 4px 16px rgba(26,26,46,0.12);
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ---- Layout ---- */
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--color-navy);
+      color: white;
+      padding: 12px 14px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-logo-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--color-purple);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -1px;
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header-subtitle {
+      font-size: 10px;
+      color: rgba(255,255,255,0.55);
+      margin-top: 1px;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    /* ---- Views ---- */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ---- Category Chips ---- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-secondary);
+    }
+
+    .btn-blank {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-purple);
+      background: var(--color-lavender);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-blank:hover { background: #d9cef0; }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1.5px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      border-color: var(--color-purple-light);
+      color: var(--color-purple);
+    }
+
+    .chip.active {
+      background: var(--color-purple);
+      border-color: var(--color-purple);
+      color: white;
+    }
+
+    /* ---- Template Cards ---- */
+    .cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .card:hover {
+      border-color: var(--color-purple-light);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .card-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-navy);
+      line-height: 1.3;
+    }
+
+    .card-category-badge {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--color-lavender);
+      color: var(--color-purple);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .card-desc {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-use {
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--color-purple);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-use:hover { background: var(--color-purple-dark); }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--color-text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* ---- Form View ---- */
+    .form-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--color-purple);
+      cursor: pointer;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .form-back:hover { text-decoration: underline; }
+
+    .form-template-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-navy);
+      margin-bottom: 4px;
+    }
+
+    .form-template-desc {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .form-field {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 4px;
+    }
+
+    .required-badge {
+      font-size: 9px;
+      color: var(--color-error);
+      font-weight: 600;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--color-text);
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--color-purple);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .form-hint {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      margin-top: 3px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--color-lavender);
+      color: var(--color-purple);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-secondary:hover { background: #d9cef0; }
+
+    .btn-primary {
+      flex: 2;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--color-purple);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover { background: var(--color-purple-dark); }
+
+    .btn-primary:disabled, .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .form-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--color-error);
+      margin-top: 10px;
+      display: none;
+    }
+
+    .form-error.visible { display: block; }
+
+    /* ---- Blank doc modal strip ---- */
+    .blank-form {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .blank-form-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--color-navy);
+    }
+
+    /* ---- Loading View ---- */
+    .loading-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--color-lavender);
+      border-top-color: var(--color-purple);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    /* ---- Done View ---- */
+    .done-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 20px 24px;
+      gap: 10px;
+    }
+
+    .done-icon {
+      width: 48px;
+      height: 48px;
+      background: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .done-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-navy);
+    }
+
+    .done-subtitle {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      max-width: 220px;
+      line-height: 1.5;
+    }
+
+    .done-doc-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-purple);
+      background: var(--color-lavender);
+      border-radius: var(--radius-sm);
+      padding: 5px 10px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-open-doc {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--color-purple);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 20px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+      width: 100%;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .btn-open-doc:hover { background: var(--color-purple-dark); }
+
+    .btn-new-doc {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-purple);
+      background: transparent;
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 7px 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.15s;
+      margin-top: 4px;
+    }
+
+    .btn-new-doc:hover {
+      border-color: var(--color-purple);
+      background: var(--color-lavender);
+    }
+
+    /* ---- Status pill ---- */
+    .status-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border-top: 1.5px solid var(--color-border);
+      padding: 8px 12px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+      box-shadow: 0 -2px 8px rgba(26,26,46,0.08);
+    }
+
+    .status-panel.visible { display: flex; }
+
+    .status-panel-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    .status-select {
+      flex: 1;
+      font-family: inherit;
+      font-size: 11px;
+      color: var(--color-text);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 4px 6px;
+      background: var(--color-surface);
+      outline: none;
+    }
+
+    .status-select:focus { border-color: var(--color-purple); }
+
+    .btn-status-save {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--color-purple);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 5px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-status-save:hover { background: var(--color-purple-dark); }
+
+    .status-feedback {
+      font-size: 10px;
+      color: var(--color-success);
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-feedback.visible { display: inline; }
+
+    /* ---- Footer ---- */
+    .footer {
+      padding: 8px 12px;
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .footer-text {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+    }
+
+    /* ---- Scrollbar ---- */
+    .content::-webkit-scrollbar { width: 4px; }
+    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+    .content::-webkit-scrollbar-thumb:hover { background: var(--color-purple-light); }
+
+    /* ---- Responsive for narrow sidebar ---- */
+    @media (max-width: 280px) {
+      .header { padding: 10px; }
+      .content { padding: 10px; }
+      .chips { gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">
+        <div class="header-logo-icon">dh</div>
+        <div>
+          <div class="header-title">doc-hub</div>
+          <div class="header-subtitle">Gestión documental</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="content" id="mainContent">
+
+      <!-- VIEW: Catalog -->
+      <div class="view active" id="viewCatalog">
+        <div class="section-header">
+          <span class="section-title">Plantillas</span>
+          <button class="btn-blank" id="btnShowBlank">+ Crear en blanco</button>
+        </div>
+
+        <!-- Blank doc form (hidden by default) -->
+        <div class="blank-form" id="blankForm" style="display:none;">
+          <div class="blank-form-title">Nuevo documento en blanco</div>
+          <div class="form-field">
+            <label class="form-label">Título <span class="required-badge">*</span></label>
+            <input type="text" class="form-input" id="blankTitle" placeholder="Nombre del documento">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" id="blankCategory">
+              <option value="General">General</option>
+              <option value="Legal">Legal</option>
+              <option value="Comercial">Comercial</option>
+              <option value="Internos">Internos</option>
+              <option value="Governance">Governance</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Tipo de archivo</label>
+            <select class="form-select" id="blankDocType">
+              <option value="doc">Google Doc</option>
+              <option value="slides">Google Slides</option>
+              <option value="sheet">Google Sheets</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Audiencia</label>
+            <input type="text" class="form-input" id="blankAudience" placeholder="Ej: Interno, Clientes, Todos">
+          </div>
+          <div class="form-actions">
+            <button class="btn-secondary" id="btnCancelBlank">Cancelar</button>
+            <button class="btn-primary" id="btnCreateBlank">Crear</button>
+          </div>
+          <div class="form-error" id="blankError"></div>
+        </div>
+
+        <!-- Category chips -->
+        <div class="chips" id="categoryChips">
+          <button class="chip active" data-category="">Todos</button>
+          <button class="chip" data-category="Legal">Legal</button>
+          <button class="chip" data-category="Comercial">Comercial</button>
+          <button class="chip" data-category="Internos">Internos</button>
+          <button class="chip" data-category="Governance">Governance</button>
+        </div>
+
+        <!-- Template cards -->
+        <div class="cards-grid" id="cardsGrid">
+          <div class="empty-state">
+            <div class="empty-state-icon">📄</div>
+            <p>Cargando plantillas...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Form -->
+      <div class="view" id="viewForm">
+        <div class="form-back" id="btnFormBack">&#8592; Volver al catálogo</div>
+        <div class="form-template-name" id="formTemplateName"></div>
+        <div class="form-template-desc" id="formTemplateDesc"></div>
+        <div id="formFields"></div>
+        <div class="form-actions">
+          <button class="btn-secondary" id="btnFormCancel">Volver</button>
+          <button class="btn-primary" id="btnFormSubmit">Generar documento</button>
+        </div>
+        <div class="form-error" id="formError"></div>
+      </div>
+
+      <!-- VIEW: Loading -->
+      <div class="view" id="viewLoading">
+        <div class="loading-view">
+          <div class="spinner"></div>
+          <div class="loading-text">Generando documento...</div>
+        </div>
+      </div>
+
+      <!-- VIEW: Done -->
+      <div class="view" id="viewDone">
+        <div class="done-view">
+          <div class="done-icon">✅</div>
+          <div class="done-title">¡Documento creado!</div>
+          <div class="done-subtitle" id="doneSubtitle">Tu documento fue creado y registrado exitosamente.</div>
+          <div class="done-doc-name" id="doneDocName"></div>
+          <a class="btn-open-doc" id="btnOpenDoc" href="#" target="_blank">
+            &#128196; Abrir documento
+          </a>
+          <button class="btn-new-doc" id="btnCreateAnother">Crear otro documento</button>
+        </div>
+      </div>
+
+    </div><!-- end .content -->
+
+    <!-- Status panel (floating pill at bottom) -->
+    <div class="status-panel" id="statusPanel">
+      <span class="status-panel-label">Estado</span>
+      <select class="status-select" id="statusSelect">
+        <option value="draft">Borrador</option>
+        <option value="review">En revisión</option>
+        <option value="approved">Aprobado</option>
+        <option value="published">Publicado</option>
+        <option value="archived">Archivado</option>
+      </select>
+      <button class="btn-status-save" id="btnSaveStatus">Guardar</button>
+      <span class="status-feedback" id="statusFeedback">Guardado</span>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span class="footer-text">doc-hub v1.0.0</span>
+    </div>
+  </div>
+
+  <script>
+    // ---- State ----
+    var state = {
+      currentView: 'catalog',
+      selectedCategory: '',
+      templates: [],
+      selectedTemplate: null,
+      generatedDoc: null,
+      selectedFileId: null,
+      selectedFileRegistryRow: null
+    };
+
+    // ---- View management ----
+    function showView(name) {
+      var views = document.querySelectorAll('.view');
+      views.forEach(function(v) { v.classList.remove('active'); });
+      document.getElementById('view' + capitalize(name)).classList.add('active');
+      state.currentView = name;
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', function() {
+      loadTemplates('');
+      setupEventListeners();
+      checkSelectedFile();
+    });
+
+    function setupEventListeners() {
+      // Category chips
+      document.getElementById('categoryChips').addEventListener('click', function(e) {
+        var chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        var cat = chip.getAttribute('data-category');
+        state.selectedCategory = cat;
+        loadTemplates(cat);
+      });
+
+      // Blank doc toggle
+      document.getElementById('btnShowBlank').addEventListener('click', function() {
+        var form = document.getElementById('blankForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+
+      document.getElementById('btnCancelBlank').addEventListener('click', function() {
+        document.getElementById('blankForm').style.display = 'none';
+        clearBlankError();
+      });
+
+      document.getElementById('btnCreateBlank').addEventListener('click', handleCreateBlank);
+
+      // Form view back buttons
+      document.getElementById('btnFormBack').addEventListener('click', function() { showView('catalog'); });
+      document.getElementById('btnFormCancel').addEventListener('click', function() { showView('catalog'); });
+
+      // Form submit
+      document.getElementById('btnFormSubmit').addEventListener('click', handleFormSubmit);
+
+      // Done view actions
+      document.getElementById('btnCreateAnother').addEventListener('click', function() {
+        state.generatedDoc = null;
+        showView('catalog');
+        loadTemplates(state.selectedCategory);
+      });
+
+      // Status panel
+      document.getElementById('btnSaveStatus').addEventListener('click', handleSaveStatus);
+    }
+
+    // ---- Template loading ----
+    function loadTemplates(category) {
+      renderLoadingCards();
+      google.script.run
+        .withSuccessHandler(function(templates) {
+          state.templates = templates || [];
+          renderTemplates(state.templates);
+        })
+        .withFailureHandler(function(err) {
+          renderErrorCards(err && err.message ? err.message : String(err));
+        })
+        .listTemplatesForSidebar(category || null);
+    }
+
+    function renderLoadingCards() {
+      document.getElementById('cardsGrid').innerHTML =
+        '<div class="empty-state"><div class="empty-state-icon" style="font-size:20px;animation:spin 1s linear infinite;display:inline-block;">&#9696;</div><p>Cargando...</p></div>';
+    }
+
+    function renderErrorCards(msg) {
+      document.getElementById('cardsGrid').innerHTML =
+        '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error al cargar: ' + escHtml(msg) + '</p></div>';
+    }
+
+    function renderTemplates(templates) {
+      var grid = document.getElementById('cardsGrid');
+      if (!templates || templates.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No hay plantillas disponibles' +
+          (state.selectedCategory ? ' para la categoría <strong>' + escHtml(state.selectedCategory) + '</strong>' : '') + '.</p></div>';
+        return;
+      }
+
+      var html = '';
+      templates.forEach(function(t) {
+        html += '<div class="card" data-template-id="' + escAttr(String(t.id)) + '">';
+        html += '<div class="card-header">';
+        html += '<div class="card-name">' + escHtml(t.name) + '</div>';
+        if (t.category) {
+          html += '<span class="card-category-badge">' + escHtml(t.category) + '</span>';
+        }
+        html += '</div>';
+        if (t.description) {
+          html += '<div class="card-desc">' + escHtml(t.description) + '</div>';
+        }
+        html += '<div class="card-footer">';
+        html += '<button class="btn-use" data-template-id="' + escAttr(String(t.id)) + '">Usar</button>';
+        html += '</div>';
+        html += '</div>';
+      });
+      grid.innerHTML = html;
+
+      // Attach click handlers
+      grid.querySelectorAll('.btn-use').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var tid = btn.getAttribute('data-template-id');
+          openTemplateForm(tid);
+        });
+      });
+
+      grid.querySelectorAll('.card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          var tid = card.getAttribute('data-template-id');
+          openTemplateForm(tid);
+        });
+      });
+    }
+
+    // ---- Template form ----
+    function openTemplateForm(templateId) {
+      var template = state.templates.find(function(t) { return String(t.id) === String(templateId); });
+      if (!template) return;
+
+      state.selectedTemplate = template;
+      document.getElementById('formTemplateName').textContent = template.name;
+      document.getElementById('formTemplateDesc').textContent = template.description || '';
+
+      renderFormFields(template);
+      clearFormError();
+      showView('form');
+    }
+
+    function renderFormFields(template) {
+      var container = document.getElementById('formFields');
+      var schema = template.tokens_schema || {};
+      var required = template.required_inputs || [];
+
+      // If schema is empty or not an object, fall back to required_inputs
+      var fieldKeys = Object.keys(schema);
+      if (fieldKeys.length === 0 && required.length > 0) {
+        // Build a minimal schema from required_inputs
+        required.forEach(function(key) {
+          schema[key] = { type: 'string', label: key };
+        });
+        fieldKeys = Object.keys(schema);
+      }
+
+      if (fieldKeys.length === 0) {
+        container.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">Esta plantilla no requiere campos adicionales.</p>';
+        return;
+      }
+
+      var html = '';
+      fieldKeys.forEach(function(key) {
+        var field = schema[key];
+        if (!field || typeof field !== 'object') field = { type: 'string' };
+        var isRequired = required.indexOf(key) !== -1;
+        var label = field.label || key.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        var fieldType = field.type || 'string';
+        var hint = field.hint || field.description || '';
+        var options = field.options || null;
+
+        html += '<div class="form-field">';
+        html += '<label class="form-label" for="field_' + escAttr(key) + '">';
+        html += escHtml(label);
+        if (isRequired) html += ' <span class="required-badge">* requerido</span>';
+        html += '</label>';
+
+        if (options && Array.isArray(options)) {
+          html += '<select class="form-select" id="field_' + escAttr(key) + '" name="' + escAttr(key) + '">';
+          html += '<option value="">Seleccionar...</option>';
+          options.forEach(function(opt) {
+            var val = typeof opt === 'object' ? opt.value : opt;
+            var lbl = typeof opt === 'object' ? opt.label : opt;
+            html += '<option value="' + escAttr(String(val)) + '">' + escHtml(String(lbl)) + '</option>';
+          });
+          html += '</select>';
+        } else if (fieldType === 'text' || fieldType === 'textarea') {
+          html += '<textarea class="form-textarea" id="field_' + escAttr(key) + '" name="' + escAttr(key) + '"';
+          if (field.placeholder) html += ' placeholder="' + escAttr(field.placeholder) + '"';
+          html += '></textarea>';
+        } else if (fieldType === 'date') {
+          html += '<input type="date" class="form-input" id="field_' + escAttr(key) + '" name="' + escAttr(key) + '">';
+        } else if (fieldType === 'number') {
+          html += '<input type="number" class="form-input" id="field_' + escAttr(key) + '" name="' + escAttr(key) + '"';
+          if (field.min !== undefined) html += ' min="' + field.min + '"';
+          if (field.max !== undefined) html += ' max="' + field.max + '"';
+          if (field.placeholder) html += ' placeholder="' + escAttr(field.placeholder) + '"';
+          html += '>';
+        } else {
+          html += '<input type="text" class="form-input" id="field_' + escAttr(key) + '" name="' + escAttr(key) + '"';
+          if (field.placeholder) html += ' placeholder="' + escAttr(field.placeholder) + '"';
+          html += '>';
+        }
+
+        if (hint) {
+          html += '<div class="form-hint">' + escHtml(hint) + '</div>';
+        }
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function handleFormSubmit() {
+      var template = state.selectedTemplate;
+      if (!template) return;
+
+      var inputs = {};
+      var required = template.required_inputs || [];
+      var schema = template.tokens_schema || {};
+      var fieldKeys = Object.keys(schema);
+
+      if (fieldKeys.length === 0 && required.length > 0) {
+        required.forEach(function(key) { fieldKeys.push(key); });
+      }
+
+      var missing = [];
+      fieldKeys.forEach(function(key) {
+        var el = document.getElementById('field_' + key);
+        if (el) {
+          inputs[key] = el.value.trim();
+        }
+        if (required.indexOf(key) !== -1 && (!inputs[key] || inputs[key] === '')) {
+          missing.push(key);
+        }
+      });
+
+      if (missing.length > 0) {
+        showFormError('Faltan campos requeridos: ' + missing.join(', '));
+        return;
+      }
+
+      clearFormError();
+      showView('loading');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.error) {
+            showView('form');
+            showFormError(result.error);
+            return;
+          }
+          state.generatedDoc = result;
+          showDoneView(result);
+        })
+        .withFailureHandler(function(err) {
+          showView('form');
+          showFormError(err && err.message ? err.message : String(err));
+        })
+        .renderTemplateFromSidebar(template.id, inputs);
+    }
+
+    function showDoneView(result) {
+      document.getElementById('doneDocName').textContent = result.name || 'Documento generado';
+      var btnOpen = document.getElementById('btnOpenDoc');
+      if (result.url) {
+        btnOpen.href = result.url;
+        btnOpen.style.display = '';
+      } else {
+        btnOpen.style.display = 'none';
+      }
+      document.getElementById('doneSubtitle').textContent = 'Tu documento fue creado y registrado exitosamente.';
+      showView('done');
+    }
+
+    function showFormError(msg) {
+      var el = document.getElementById('formError');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearFormError() {
+      var el = document.getElementById('formError');
+      el.textContent = '';
+      el.classList.remove('visible');
+    }
+
+    // ---- Blank doc creation ----
+    function handleCreateBlank() {
+      var title = document.getElementById('blankTitle').value.trim();
+      if (!title) {
+        showBlankError('El título es requerido.');
+        return;
+      }
+
+      var category = document.getElementById('blankCategory').value;
+      var docType = document.getElementById('blankDocType').value;
+      var audience = document.getElementById('blankAudience').value.trim();
+
+      clearBlankError();
+      document.getElementById('btnCreateBlank').disabled = true;
+      document.getElementById('blankForm').style.display = 'none';
+      showView('loading');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('btnCreateBlank').disabled = false;
+          if (result && result.error) {
+            document.getElementById('blankForm').style.display = 'block';
+            showView('catalog');
+            showBlankError(result.error);
+            return;
+          }
+          state.generatedDoc = result;
+          showDoneView(result);
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('btnCreateBlank').disabled = false;
+          document.getElementById('blankForm').style.display = 'block';
+          showView('catalog');
+          showBlankError(err && err.message ? err.message : String(err));
+        })
+        .createBlankFromSidebar(category, title, audience, docType);
+    }
+
+    function showBlankError(msg) {
+      var el = document.getElementById('blankError');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearBlankError() {
+      var el = document.getElementById('blankError');
+      el.textContent = '';
+      el.classList.remove('visible');
+    }
+
+    // ---- Status panel ----
+    function checkSelectedFile() {
+      google.script.run
+        .withSuccessHandler(function(info) {
+          if (!info || !info.fileId) {
+            document.getElementById('statusPanel').classList.remove('visible');
+            return;
+          }
+          state.selectedFileId = info.fileId;
+          state.selectedFileRegistryRow = info.registryRow;
+          var panel = document.getElementById('statusPanel');
+          panel.classList.add('visible');
+
+          // Set current status if known
+          if (info.registryRow && info.registryRow.status) {
+            var sel = document.getElementById('statusSelect');
+            sel.value = info.registryRow.status;
+          }
+        })
+        .withFailureHandler(function() {
+          document.getElementById('statusPanel').classList.remove('visible');
+        })
+        .getSelectedFileInfo();
+    }
+
+    function handleSaveStatus() {
+      if (!state.selectedFileId) return;
+      var status = document.getElementById('statusSelect').value;
+      var btn = document.getElementById('btnSaveStatus');
+      var feedback = document.getElementById('statusFeedback');
+
+      btn.disabled = true;
+      feedback.classList.remove('visible');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          if (result && result.ok) {
+            feedback.textContent = '✓ Guardado';
+            feedback.classList.add('visible');
+            setTimeout(function() { feedback.classList.remove('visible'); }, 2000);
+          } else {
+            feedback.textContent = result && result.error ? result.error : 'Error';
+            feedback.style.color = 'var(--color-error)';
+            feedback.classList.add('visible');
+            setTimeout(function() {
+              feedback.classList.remove('visible');
+              feedback.style.color = '';
+            }, 3000);
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          feedback.textContent = err && err.message ? err.message : 'Error';
+          feedback.style.color = 'var(--color-error)';
+          feedback.classList.add('visible');
+          setTimeout(function() {
+            feedback.classList.remove('visible');
+            feedback.style.color = '';
+          }, 3000);
+        })
+        .updateStatusFromSidebar(state.selectedFileId, status);
+    }
+
+    // ---- Utils ----
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function escAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
