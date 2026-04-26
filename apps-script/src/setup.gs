@@ -401,3 +401,246 @@ function setupBrandedTemplatesKuillV1() {
 
   return { ok: true, results: results };
 }
+
+/**
+ * Creates the NDA-Kuill-Pilot template as a Google Doc in Doc-templates/Legal/
+ * with KUILL SPA legal entity info hardcoded and {{tokens}} for the institution.
+ * Based on Chilean NDA legal framework (UDD + UANDES models).
+ * Idempotent: if [template] NDA-Kuill-Pilot already exists, trashes it first.
+ */
+function createNDATemplate() {
+  var cfg = getConfig();
+  var LEGAL_TEMPLATES_FOLDER = '1-xbMZSpBCZ6qzl6t_cfopI3-7UetibDj';
+  var MANIFEST_NDA_OLD_ID = '11pkaSdwE3i_tgPcsKsO3nSzTVLRPaelBdrzk7HrqJQM';
+  var templateName = '[template] NDA-Kuill-Pilot';
+
+  // Trash any existing template with this name
+  var folder = DriveApp.getFolderById(LEGAL_TEMPLATES_FOLDER);
+  var existing = folder.getFilesByName(templateName);
+  while (existing.hasNext()) {
+    var old = existing.next();
+    console.log('Trashing old NDA template: ' + old.getId());
+    old.setTrashed(true);
+  }
+  // Also trash old ID if accessible
+  try { DriveApp.getFileById(MANIFEST_NDA_OLD_ID).setTrashed(true); } catch(e) {}
+
+  // Create new Google Doc
+  var doc = DocumentApp.create(templateName);
+  var docId = doc.getId();
+  var body = doc.getBody();
+
+  // Move to correct folder
+  var rootFile = DriveApp.getFileById(docId);
+  folder.addFile(rootFile);
+  rootFile.getParents().next().removeFile(rootFile);
+
+  // Build NDA content
+  var lines = [
+    'ACUERDO DE CONFIDENCIALIDAD',
+    '',
+    'En Santiago de Chile, a {{fecha}}, comparecen:',
+    '',
+    '1. KUILL SPA, RUT N° 78.405.972-3, del giro Desarrollo de Software, representada por don REPRESENTATIVE_NAME, R.U.N. N° REPRESENTATIVE_RUT, ambos domiciliados en Avenida COMPANY_ADDRESS, Santiago; en adelante también "KUILL"; y',
+    '',
+    '2. {{nombre_institucion}}, RUT N° {{rut_institucion}}, representada por {{nombre_representante}}, {{cargo_representante}}, ambos domiciliados en {{direccion_institucion}}, comuna de {{comuna_institucion}}, Santiago; en adelante también "la INSTITUCIÓN".',
+    '',
+    'KUILL y la INSTITUCIÓN se denominarán conjuntamente "las Partes".',
+    '',
+    'Las Partes han convenido celebrar el presente Acuerdo de Confidencialidad, sujeto a las siguientes cláusulas:',
+    '',
+    '',
+    'PRIMERA: DECLARACIONES.',
+    '',
+    'A. KUILL ha decidido transmitir a la INSTITUCIÓN cierta información confidencial, de su propiedad, en formatos físicos, electrónicos, orales o inmateriales, a la que se denominará "Información Confidencial", con el propósito de llevar a cabo un piloto gratuito de validación de producto, constituyéndose en parte divulgante para los efectos de este acuerdo.',
+    '',
+    'B. La INSTITUCIÓN declara que, en virtud de la naturaleza de este acuerdo, se constituye como parte receptora de la Información Confidencial.',
+    '',
+    '',
+    'SEGUNDA: DEFINICIÓN DE INFORMACIÓN CONFIDENCIAL.',
+    '',
+    'Para los efectos del presente Acuerdo, "Información Confidencial" comprende toda información y know-how divulgados por KUILL, sea o no por escrito, en formato digital, tangible o no, que pueda razonablemente entenderse que tiene tal carácter. Esto incluye, de manera ilustrativa y no limitativa: algoritmos, código fuente, arquitectura de software, modelos de lenguaje e inteligencia artificial, metodologías pedagógicas, criterios de evaluación, rúbricas, datos de entrenamiento, documentación técnica, interfaces de usuario (UI/UX), estrategias y planes de negocio, datos financieros, información de clientes y proveedores, y cualquier otro material técnico o comercial vinculado a la plataforma KUILL.',
+    '',
+    '',
+    'TERCERA: OBLIGACIONES DE CONFIDENCIALIDAD.',
+    '',
+    'La INSTITUCIÓN se obliga a:',
+    '',
+    'a) No divulgar a terceros la Información Confidencial que reciba de KUILL, dándole el mismo tratamiento que a su propia información confidencial, pero empleando en todo caso un estándar de cuidado no inferior al razonable.',
+    '',
+    'b) Restringir el acceso a la Información Confidencial a sus directivos, empleados y asesores que tengan estricta necesidad de conocerla para los fines autorizados, informándoles de su carácter confidencial.',
+    '',
+    'c) No reproducir la Información Confidencial sin autorización escrita previa de KUILL.',
+    '',
+    'd) No reestructurar, descompilar, desensamblar ni realizar ingeniería inversa sobre ningún componente de la Información Confidencial.',
+    '',
+    '',
+    'CUARTA: PROPIEDAD Y AUSENCIA DE LICENCIA.',
+    '',
+    'La INSTITUCIÓN acepta que la Información Confidencial es y seguirá siendo propiedad exclusiva de KUILL. Este instrumento no otorga, de manera expresa ni implícita, licencia alguna sobre patentes, derechos de autor, marcas comerciales, secretos industriales u otro derecho de propiedad intelectual o industrial de KUILL.',
+    '',
+    '',
+    'QUINTA: USO PERMITIDO.',
+    '',
+    'La INSTITUCIÓN se obliga a utilizar la Información Confidencial exclusivamente para evaluar la plataforma KUILL en el marco del piloto gratuito de validación de producto descrito en el Anexo A del presente Acuerdo. Queda prohibido todo otro uso.',
+    '',
+    '',
+    'SEXTA: FEEDBACK, DATOS Y PROPIEDAD INTELECTUAL.',
+    '',
+    'A. Propiedad del feedback: toda sugerencia, idea de mejora u observación aportada por la INSTITUCIÓN, sus directivos, docentes o estudiantes durante el piloto, será de propiedad exclusiva de KUILL, sin derecho a compensación de ninguna especie.',
+    '',
+    'B. Datos anonimizados: KUILL queda autorizado para procesar, analizar y utilizar estadísticas agregadas y datos debidamente anonimizados generados durante el piloto, para fines de mejora algorítmica, investigación educativa y elaboración de casos de uso comerciales, en conformidad con la Ley N° 19.628 sobre Protección de la Vida Privada y los principios del Reglamento General de Protección de Datos de la Unión Europea (RGPD).',
+    '',
+    'C. Datos personales: todo tratamiento de datos personales de estudiantes menores de edad se realizará conforme a la normativa vigente en Chile, con consentimiento informado de sus padres o apoderados.',
+    '',
+    '',
+    'SÉPTIMA: USO DE NOMBRE Y MARCA.',
+    '',
+    'La INSTITUCIÓN autoriza expresamente a KUILL a mencionar su nombre y utilizar su logotipo en presentaciones a inversionistas, materiales de marketing y publicaciones vinculadas al piloto. Esta autorización podrá ser revocada por escrito con aviso de 15 días de anticipación.',
+    '',
+    '',
+    'OCTAVA: EXCLUSIONES.',
+    '',
+    'No se considerará "Información Confidencial" aquella que:',
+    '',
+    'a) La INSTITUCIÓN pruebe que se encontraba en su conocimiento con anterioridad a la fecha del presente Acuerdo.',
+    '',
+    'b) Sea o llegue a ser de dominio público, siempre que ello no sea consecuencia de un incumplimiento de este Acuerdo por la INSTITUCIÓN.',
+    '',
+    'c) Sea suministrada a la INSTITUCIÓN por terceros que no se encuentren obligados a mantenerla en reserva.',
+    '',
+    'd) Deba ser revelada en virtud de una orden judicial o resolución de autoridad competente, en cuyo caso la INSTITUCIÓN deberá notificar a KUILL a la brevedad posible antes de cumplir el requerimiento, para que KUILL pueda ejercer las acciones que estime pertinentes.',
+    '',
+    'En el supuesto de la letra d), la INSTITUCIÓN empleará sus mejores esfuerzos para que la información revelada sea tratada como confidencial por la autoridad requirente, y divulgará solo aquella información estrictamente necesaria.',
+    '',
+    '',
+    'NOVENA: VIGENCIA.',
+    '',
+    'La vigencia del presente Acuerdo será de {{duracion_confidencialidad}} contados desde su fecha de suscripción, sin perjuicio de que las obligaciones de confidencialidad establecidas en la Cláusula Tercera subsistirán por un período adicional de 2 (dos) años a partir de la terminación del Acuerdo.',
+    '',
+    '',
+    'DÉCIMA: DEVOLUCIÓN Y DESTRUCCIÓN DE INFORMACIÓN.',
+    '',
+    'Dentro de los 5 días hábiles siguientes a la fecha en que KUILL lo requiera, o al término del piloto, la INSTITUCIÓN deberá devolver o destruir toda la Información Confidencial tangible, incluyendo sus copias. Si la INSTITUCIÓN optare por la destrucción, KUILL podrá exigir una certificación escrita que acredite dicho acto, indicando fecha y modalidad de destrucción.',
+    '',
+    '',
+    'DÉCIMA PRIMERA: RESPONSABILIDAD E INCUMPLIMIENTO.',
+    '',
+    'En caso de incumplimiento parcial o total de las obligaciones establecidas en este Acuerdo, la INSTITUCIÓN será responsable de todos los daños y perjuicios que dicho incumplimiento ocasione a KUILL. Las Partes reconocen que el pago de perjuicios podría no ser una indemnización suficiente frente a ciertas infracciones, por lo que KUILL quedará facultada para exigir, además, el cumplimiento específico del Acuerdo.',
+    '',
+    '',
+    'DÉCIMA SEGUNDA: NO CESIÓN.',
+    '',
+    'Ninguna de las Partes podrá ceder sus derechos y obligaciones derivados del presente Acuerdo sin el consentimiento escrito previo de la otra Parte.',
+    '',
+    '',
+    'DÉCIMA TERCERA: INTEGRIDAD Y MODIFICACIONES.',
+    '',
+    'Este Acuerdo constituye el entendimiento total entre las Partes respecto a la Información Confidencial y reemplaza cualquier acuerdo previo, oral o escrito, sobre la misma materia. Toda modificación deberá constar por escrito y ser suscrita por ambas Partes.',
+    '',
+    '',
+    'DÉCIMA CUARTA: SOLUCIÓN DE CONTROVERSIAS.',
+    '',
+    'Las Partes se comprometen a intentar resolver directa y amistosamente cualquier desacuerdo relativo a la interpretación o ejecución del presente Acuerdo.',
+    '',
+    'De no lograrse acuerdo, toda controversia será sometida a arbitraje conforme al Reglamento Procesal de Arbitraje del Centro de Arbitraje y Mediación de Santiago de la Cámara de Comercio de Santiago A.G. Las Partes confieren poder especial e irrevocable a la Cámara de Comercio de Santiago A.G. para designar a un árbitro arbitrador de entre los integrantes de dicho cuerpo arbitral, a petición de cualquiera de ellas.',
+    '',
+    'En contra de las resoluciones del árbitro no procederá recurso alguno, a los cuales las Partes renuncian expresamente.',
+    '',
+    '',
+    'DÉCIMA QUINTA: LEY APLICABLE Y DOMICILIO.',
+    '',
+    'El presente Acuerdo se rige por las leyes de la República de Chile. Para todos sus efectos, las Partes fijan domicilio en la ciudad de Santiago.',
+    '',
+    '',
+    'DÉCIMA SEXTA: EJEMPLARES.',
+    '',
+    'El presente instrumento se firma en dos ejemplares del mismo tenor y fecha, quedando uno en poder de cada Parte.',
+    '',
+    'La repería de don REPRESENTATIVE_NAME para representar a KUILL SPA consta en escritura pública de fecha _____________, otorgada ante Notaría de _________________.',
+    '',
+    'La repería de {{nombre_representante}} para representar a {{nombre_institucion}} consta en ________________________.',
+    '',
+    'Documentos que no se insertan por ser conocidos de las Partes.',
+    '',
+    '',
+    '',
+    '______________________________    ______________________________',
+    'KUILL SPA                         {{nombre_institucion}}',
+    'REPRESENTATIVE_NAME          {{nombre_representante}}',
+    'Representante Legal               {{cargo_representante}}',
+    'RUT 78.405.972-3                  RUT {{rut_institucion}}',
+    '',
+    '',
+    'ANEXO A — ESPECIFICACIONES DEL PILOTO',
+    '',
+    '1. Objeto del piloto',
+    '   Validación del funcionamiento de la plataforma KUILL en un contexto educativo chileno. El piloto tiene carácter no comercial durante su duración.',
+    '',
+    '2. Alcance',
+    '   - Asignatura: {{asignatura}}.',
+    '   - Nivel educativo: {{nivel_educativo}}.',
+    '   - Participantes: {{numero_docentes}} docentes y {{numero_estudiantes}} estudiantes.',
+    '   - Duración: {{duracion_semanas}} semanas.',
+    '   - Modalidad de acceso: SaaS, vía web.',
+    '',
+    '3. Soporte técnico',
+    '   KUILL proveerá soporte técnico remoto en horario hábil durante todo el período del piloto.',
+    '',
+    '4. Cronograma tentativo',
+    '   - Semana 1: Onboarding y capacitación docente (90 minutos).',
+    '   - Semanas 2 a {{duracion_semanas}}: Uso activo de la plataforma.',
+    '   - Semana final: Entrega de reporte de resultados y cierre.',
+    '',
+    '5. Principio rector',
+    '   "La IA propone, el docente dispone." Toda calificación publicada y todo feedback entregado al estudiante requiere aprobación explícita del docente participante.'
+  ];
+
+  body.clear();
+  lines.forEach(function(line) {
+    body.appendParagraph(line);
+  });
+  doc.saveAndClose();
+
+  console.log('NDA template created: ' + docId);
+
+  // Update manifest
+  updateManifestTemplateFileId('nda-kuill-pilot', docId, cfg);
+
+  // Update tokens_schema and required_inputs in manifest
+  var ss = SpreadsheetApp.openById(cfg.manifestSheetId);
+  var sheet = ss.getSheetByName('Manifest');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === 'nda-kuill-pilot') {
+      var newSchema = JSON.stringify({
+        fecha:{type:'string',description:'Fecha del acuerdo (ej: 26 de abril de 2026)',required:true},
+        nombre_institucion:{type:'string',description:'Nombre completo del establecimiento',required:true},
+        rut_institucion:{type:'string',description:'RUT de la institucion',required:true},
+        nombre_representante:{type:'string',description:'Nombre del representante legal',required:true},
+        cargo_representante:{type:'string',description:'Cargo del firmante (ej: Directora, Rector)',required:true},
+        direccion_institucion:{type:'string',description:'Direccion del establecimiento',required:true},
+        comuna_institucion:{type:'string',description:'Comuna del establecimiento',required:true},
+        duracion_confidencialidad:{type:'string',description:'Vigencia del acuerdo (default: 3 anos)',required:false},
+        nivel_educativo:{type:'string',description:'Nivel educativo (ej: 7mo y 8vo Basico)',required:false},
+        asignatura:{type:'string',description:'Asignatura objeto del piloto (ej: Lenguaje y Comunicacion)',required:false},
+        numero_docentes:{type:'string',description:'Numero de docentes participantes',required:false},
+        numero_estudiantes:{type:'string',description:'Numero aproximado de estudiantes',required:false},
+        duracion_semanas:{type:'string',description:'Duracion del piloto en semanas',required:false},
+        duracion_piloto:{type:'string',description:'Duracion del piloto (texto libre)',required:false}
+      });
+      var newRequired = JSON.stringify(['fecha','nombre_institucion','rut_institucion','nombre_representante','cargo_representante','direccion_institucion','comuna_institucion']);
+      sheet.getRange(i+1, 8).setValue(newSchema);  // tokens_schema col H
+      sheet.getRange(i+1, 9).setValue(newRequired); // required_inputs col I
+      console.log('Manifest tokens_schema + required_inputs updated for nda-kuill-pilot');
+      break;
+    }
+  }
+
+  return {
+    ok: true,
+    fileId: docId,
+    url: 'https://docs.google.com/document/d/' + docId + '/edit',
+    name: templateName
+  };
+}

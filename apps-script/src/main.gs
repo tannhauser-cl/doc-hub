@@ -43,6 +43,10 @@ function doGet(e) {
         const result = setupBrandedTemplatesKuillV1();
         return jsonResponse(result);
       }
+      case 'createNDATemplate': {
+        const result = createNDATemplate();
+        return jsonResponse(result);
+      }
       default:
         return jsonResponse({ error: `Unknown GET action: ${action}` });
     }
