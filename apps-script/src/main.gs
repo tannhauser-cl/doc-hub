@@ -25,6 +25,20 @@ function doGet(e) {
         const tokens = getBrandTokens();
         return jsonResponse(tokens);
       }
+      case 'seedManifest': {
+        const result = seedManifestKuillV1();
+        return jsonResponse(result);
+      }
+      case 'getStats': {
+        const cfg = getConfig();
+        const regSheet = getRegistrySheet();
+        const mfSheet = SpreadsheetApp.openById(cfg.manifestSheetId).getSheetByName('Manifest');
+        return jsonResponse({
+          registry_rows: Math.max(0, regSheet.getLastRow() - 1),
+          manifest_rows: mfSheet ? Math.max(0, mfSheet.getLastRow() - 1) : 0,
+          tenant: cfg.tenantId
+        });
+      }
       default:
         return jsonResponse({ error: `Unknown GET action: ${action}` });
     }

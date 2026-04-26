@@ -109,3 +109,122 @@ function getOrCreateSheet(spreadsheetId, sheetName, headers) {
 
   return sheet;
 }
+
+/**
+ * Seeds the _manifest sheet with KUILL v1 templates.
+ * Idempotent: checks if the template ID already exists before inserting.
+ * Run once from Apps Script editor after setup().
+ */
+function seedManifestKuillV1() {
+  const cfg = getConfig();
+  const ss = SpreadsheetApp.openById(cfg.manifestSheetId);
+  const sheet = ss.getSheetByName('Manifest');
+  if (!sheet) throw new Error('Manifest sheet not found. Run setup() first.');
+
+  const templates = [
+    {
+      id: 'nda-kuill-pilot',
+      category: 'Legal',
+      name: 'NDA Kuill Pilot',
+      description: 'Acuerdo de no-divulgacion para instituciones en piloto. Cubre confidencialidad, proteccion de datos (Ley 19.628), uso de marca y arbitraje.',
+      template_file_id: '13eXB5CL-O_xcO7g9RWbO5ZrD6RachpFAT0HRfYiMnek',
+      output_folder_id: '1KKa0jvp-p-gO14ApTlxvA1Pm-jEhVem_',
+      naming_pattern: 'NDA-Kuill-Pilot-{{nombre_institucion_slug}}-{{YYYY-MM}}',
+      tokens_schema: JSON.stringify({nombre_institucion:{type:'string',description:'Nombre completo de la institucion',required:true},rut_institucion:{type:'string',description:'RUT de la institucion',required:true},nombre_representante:{type:'string',description:'Nombre del representante legal',required:true},cargo_representante:{type:'string',description:'Cargo del representante',required:true},fecha:{type:'string',description:'Fecha del acuerdo',required:true},duracion_piloto:{type:'string',description:'Duracion del piloto (ej: 6 semanas)',required:false},numero_estudiantes:{type:'string',description:'Numero de estudiantes',required:false},numero_docentes:{type:'string',description:'Numero de docentes',required:false},nivel_educativo:{type:'string',description:'Nivel educativo',required:false},duracion_semanas:{type:'string',description:'Semanas del piloto',required:false}}),
+      required_inputs: JSON.stringify(['nombre_institucion','rut_institucion','nombre_representante','cargo_representante','fecha']),
+      suggested_sources: JSON.stringify(['Management/Legal','KUILL-legal/09-Pilots-Research']),
+      doc_type: 'document',
+      owner: 'admin@example.com',
+      version: '1.0.0',
+      active: true
+    },
+    {
+      id: 'acuerdo-piloto-colegio',
+      category: 'Legal',
+      name: 'Acuerdo de Colaboracion Piloto',
+      description: 'Acuerdo de colaboracion para piloto de validacion de producto. Define alcance, hipotesis pre-registradas, responsabilidades, gobernanza y proteccion de datos.',
+      template_file_id: '1FVnxCGX6vsJb16NbWK3WaOSGcS608khfhsMpFxZp9M4',
+      output_folder_id: '1KKa0jvp-p-gO14ApTlxvA1Pm-jEhVem_',
+      naming_pattern: 'Acuerdo-Piloto-{{nombre_colegio_slug}}-{{YYYY-MM}}',
+      tokens_schema: JSON.stringify({nombre_colegio:{type:'string',description:'Nombre completo del establecimiento',required:true},rut_colegio:{type:'string',description:'RUT del colegio',required:true},nombre_director:{type:'string',description:'Nombre del director o representante legal',required:true},cargo_director:{type:'string',description:'Cargo del firmante',required:true},fecha_inicio:{type:'string',description:'Fecha de inicio del piloto',required:true},duracion_semanas:{type:'string',description:'Duracion en semanas',required:false},numero_docentes:{type:'string',description:'Numero de docentes participantes',required:false},numero_estudiantes:{type:'string',description:'Numero aproximado de estudiantes',required:false},nivel_educativo:{type:'string',description:'Nivel educativo involucrado',required:false},piloto_manager_kuill:{type:'string',description:'Nombre del piloto manager de KUILL',required:false},piloto_manager_colegio:{type:'string',description:'Nombre del contacto institucional del colegio',required:false}}),
+      required_inputs: JSON.stringify(['nombre_colegio','rut_colegio','nombre_director','cargo_director','fecha_inicio']),
+      suggested_sources: JSON.stringify(['KUILL-legal/09-Pilots-Research','Product/Pilot-projects','Product/Pilot-toolkit']),
+      doc_type: 'document',
+      owner: 'admin@example.com',
+      version: '1.0.0',
+      active: true
+    },
+    {
+      id: 'propuesta-piloto',
+      category: 'Comercial',
+      name: 'Propuesta de Piloto',
+      description: 'Deck de propuesta para presentar el piloto KUILL a un colegio. Incluye problema, como funciona, propuesta especifica, evidencia a generar y proximos pasos.',
+      template_file_id: '1hduDBe7cNCfmG6szSd75LBzFsNGkKr2LNrBDGF-Xjqg',
+      output_folder_id: '15e5j1TSNEUbSYAMHLSR25OzzU127YZCi',
+      naming_pattern: 'Propuesta-Piloto-{{nombre_colegio_slug}}-{{YYYY-MM}}',
+      tokens_schema: JSON.stringify({nombre_colegio:{type:'string',description:'Nombre del establecimiento',required:true},nombre_director:{type:'string',description:'Nombre del director',required:true},fecha_presentacion:{type:'string',description:'Fecha de la propuesta',required:true},numero_docentes:{type:'string',description:'Numero de docentes piloto',required:false},nivel_educativo:{type:'string',description:'Nivel educativo',required:false},duracion_semanas:{type:'string',description:'Duracion propuesta en semanas',required:false}}),
+      required_inputs: JSON.stringify(['nombre_colegio','nombre_director','fecha_presentacion']),
+      suggested_sources: JSON.stringify(['Product/Pilot-toolkit','Management/Investors','KUILL-handoff/02-product-vision-positioning.md']),
+      doc_type: 'document',
+      owner: 'admin@example.com',
+      version: '1.0.0',
+      active: true
+    },
+    {
+      id: 'deck-kickoff-docente',
+      category: 'Internos',
+      name: 'Deck Kickoff Docente',
+      description: 'Presentacion de kickoff para docentes al inicio del piloto. Explica como funciona KUILL, el principio LA IA propone el docente dispone, y los acuerdos operativos.',
+      template_file_id: '1ic09kaIJ4KGNGGtPDODWHNgTxig70KmB44LffqSjhBI',
+      output_folder_id: '1grPkBuyLDPKm1s2znOFdBuDbgDiePL66',
+      naming_pattern: 'Deck-Kickoff-Docente-{{nombre_colegio_slug}}-{{YYYY-MM}}',
+      tokens_schema: JSON.stringify({nombre_colegio:{type:'string',description:'Nombre del establecimiento',required:true},fecha_sesion:{type:'string',description:'Fecha de la sesion de kickoff',required:true},nivel_educativo:{type:'string',description:'Nivel del grupo',required:false},nombre_coordinador:{type:'string',description:'Nombre del coordinador KUILL en el colegio',required:false},piloto_manager_kuill:{type:'string',description:'Nombre del piloto manager de KUILL',required:false}}),
+      required_inputs: JSON.stringify(['nombre_colegio','fecha_sesion']),
+      suggested_sources: JSON.stringify(['Product/Pilot-toolkit','KUILL-handoff/03-personas-and-roles.md']),
+      doc_type: 'document',
+      owner: 'admin@example.com',
+      version: '1.0.0',
+      active: true
+    },
+    {
+      id: 'deck-directivos',
+      category: 'Comercial',
+      name: 'Deck para Directivos',
+      description: 'Presentacion ejecutiva para directores y equipos directivos de colegios. Explica el valor de KUILL, el principio de la IA copiloto, la propuesta del piloto y proteccion de datos.',
+      template_file_id: '1-mxHHcStulZz7QA-m-izjS2W-_yq78HTUINXAo5vfCI',
+      output_folder_id: '15e5j1TSNEUbSYAMHLSR25OzzU127YZCi',
+      naming_pattern: 'Deck-Directivos-{{nombre_colegio_slug}}-{{YYYY-MM}}',
+      tokens_schema: JSON.stringify({nombre_colegio:{type:'string',description:'Nombre del establecimiento',required:true},nombre_director:{type:'string',description:'Nombre del director',required:false},fecha:{type:'string',description:'Fecha de la presentacion',required:false},nivel_educativo:{type:'string',description:'Nivel educativo propuesto',required:false},duracion_semanas:{type:'string',description:'Duracion del piloto propuesto',required:false}}),
+      required_inputs: JSON.stringify(['nombre_colegio']),
+      suggested_sources: JSON.stringify(['Management/Investors','Management/Sales','KUILL-handoff/02-product-vision-positioning.md','KUILL-handoff/06-pricing-and-packaging.md']),
+      doc_type: 'document',
+      owner: 'admin@example.com',
+      version: '1.0.0',
+      active: true
+    }
+  ];
+
+  // Get existing IDs to avoid duplicates
+  const data = sheet.getDataRange().getValues();
+  const existingIds = data.slice(1).map(row => row[0]).filter(Boolean);
+
+  let added = 0;
+  templates.forEach(t => {
+    if (existingIds.includes(t.id)) {
+      console.log('Skipping existing template: ' + t.id);
+      return;
+    }
+    const row = [
+      t.id, t.category, t.name, t.description, t.template_file_id,
+      t.output_folder_id, t.naming_pattern, t.tokens_schema,
+      t.required_inputs, t.suggested_sources, t.doc_type,
+      t.owner, t.version, String(t.active)
+    ];
+    sheet.appendRow(row);
+    console.log('Added template: ' + t.id);
+    added++;
+  });
+
+  console.log('seedManifestKuillV1 complete. Added: ' + added + ', Skipped: ' + (templates.length - added));
+  return { added, skipped: templates.length - added };
+}
