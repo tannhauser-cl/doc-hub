@@ -103,23 +103,86 @@ function getSelectedFileInfo() {
 }
 
 /**
- * Opens the sidebar in Google Drive. Call from a menu item or trigger.
+ * Returns the active UI context (Sheets, Docs, Forms, or Script Editor fallback).
  */
-function showSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile('src/Sidebar')
-    .setTitle('doc-hub')
-    .setWidth(320);
-  SpreadsheetApp.getUi().showSidebar(html);
+function getUiContext() {
+  try { return SpreadsheetApp.getUi(); } catch(e) {}
+  try { return DocumentApp.getUi(); } catch(e) {}
+  try { return SlidesApp.getUi(); } catch(e) {}
+  return null;
 }
 
 /**
- * Adds the doc-hub menu to Drive (if running in a Sheets/Docs container).
+ * Opens the DOC HUB sidebar. Works in Sheets, Docs, and Slides.
  */
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('doc-hub')
+function showSidebar() {
+  var html = HtmlService.createHtmlOutputFromFile('src/Sidebar')
+    .setTitle('🦊 DOC HUB')
+    .setWidth(340);
+  var ui = getUiContext();
+  if (ui) {
+    ui.showSidebar(html);
+  } else {
+    throw new Error('Abre DOC HUB desde un Google Doc, Sheet o Slides.');
+  }
+}
+
+/**
+ * Adds the DOC HUB menu when a Sheets/Docs file is opened.
+ */
+function onOpen(e) {
+  var ui = getUiContext();
+  if (!ui) return;
+  ui.createMenu('🦊 DOC HUB')
     .addItem('Abrir panel', 'showSidebar')
     .addSeparator()
-    .addItem('Configurar sistema', 'setup')
+    .addItem('Nuevo documento en blanco', 'showSidebarBlank')
     .addToUi();
+}
+
+function showSidebarBlank() {
+  showSidebar();
+}
+
+// --- Workspace Add-on homepage triggers ---
+
+function onDriveHomepage(e) {
+  return buildAddOnCard();
+}
+
+function onSheetsHomepage(e) {
+  return buildAddOnCard();
+}
+
+function onDocsHomepage(e) {
+  return buildAddOnCard();
+}
+
+function onDriveItemsSelected(e) {
+  return buildAddOnCard();
+}
+
+/**
+ * Builds a simple card UI for the Workspace Add-on panel.
+ * Users click "Abrir DOC HUB" to open the sidebar in their current doc/sheet.
+ */
+function buildAddOnCard() {
+  var card = CardService.newCardBuilder()
+    .setName('DOC HUB')
+    .setHeader(CardService.newCardHeader()
+      .setTitle('🦊 DOC HUB')
+      .setSubtitle('Sistema de gestión documental KUILL')
+      .setImageStyle(CardService.ImageStyle.CIRCLE));
+
+  var section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph()
+      .setText('Crea, busca y gestiona documentos corporativos de KUILL desde un solo lugar.'))
+    .addWidget(CardService.newButtonSet()
+      .addButton(CardService.newTextButton()
+        .setText('Abrir panel')
+        .setOnClickAction(CardService.newAction().setFunctionName('showSidebar'))
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)));
+
+  card.addSection(section);
+  return card.build();
 }

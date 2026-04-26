@@ -11,6 +11,28 @@
 function doGet(e) {
   try {
     const action = e.parameter && e.parameter.action;
+
+    // Serve sidebar as standalone web page
+    if (!action || action === 'sidebar') {
+      try {
+        const cfg = getConfig();
+        const webAppUrl = ScriptApp.getService().getUrl();
+        let html = HtmlService.createHtmlOutputFromFile('src/Sidebar').getContent();
+        html = html.split('{{WEB_APP_URL}}').join(webAppUrl);
+        return HtmlService.createHtmlOutput(html)
+          .setTitle('🦊 DOC HUB')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      } catch(htmlErr) {
+        return HtmlService.createHtmlOutput(
+          '<html><body style="font-family:sans-serif;padding:24px">' +
+          '<h2 style="color:#7B1FA2">🦊 DOC HUB</h2>' +
+          '<p>Error loading sidebar: ' + htmlErr.message + '</p>' +
+          '<p>Action: ' + action + '</p>' +
+          '</body></html>'
+        ).setTitle('DOC HUB - Error');
+      }
+    }
+
     if (!action) {
       return jsonResponse({ error: 'Missing action parameter' });
     }

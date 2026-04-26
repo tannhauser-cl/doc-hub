@@ -596,10 +596,108 @@ function createNDATemplate() {
     '   "La IA propone, el docente dispone." Toda calificación publicada y todo feedback entregado al estudiante requiere aprobación explícita del docente participante.'
   ];
 
+  // --- Build content ---
   body.clear();
   lines.forEach(function(line) {
     body.appendParagraph(line);
   });
+
+  // --- Apply KUILL branding ---
+  var COLOR_PRIMARY = '#7B1FA2';
+  var COLOR_BODY    = '#1A1A1A';
+  var COLOR_GRAY    = '#424242';
+  var FONT          = 'Inter';
+  var LOGO_FILE_ID  = '15RxUERq3Nz3INd_VsKoxYWE882BaC3-_';
+
+  // --- Page margins: 72pt (1 inch) ---
+  var style = {};
+  style[DocumentApp.Attribute.MARGIN_TOP]    = 72;
+  style[DocumentApp.Attribute.MARGIN_BOTTOM] = 72;
+  style[DocumentApp.Attribute.MARGIN_LEFT]   = 72;
+  style[DocumentApp.Attribute.MARGIN_RIGHT]  = 72;
+  body.setAttributes(style);
+
+  // --- Header: logo left + document title right ---
+  try {
+    var header = doc.addHeader();
+    header.clear();
+    var headerTable = header.appendTable([['', 'ACUERDO DE CONFIDENCIALIDAD']]);
+    headerTable.setBorderWidth(0);
+
+    // Logo cell
+    var logoCell = headerTable.getCell(0, 0);
+    logoCell.setWidth(180);
+    var logoBlob = DriveApp.getFileById(LOGO_FILE_ID).getBlob();
+    var logoPara = logoCell.getChild(0).asParagraph();
+    var logoImg = logoPara.appendInlineImage(logoBlob);
+    logoImg.setWidth(110);
+    logoImg.setHeight(Math.round(logoImg.getHeight() * 110 / logoImg.getWidth()));
+    logoPara.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+
+    // Title cell
+    var titleCell = headerTable.getCell(0, 1);
+    var titleText = titleCell.getChild(0).asParagraph();
+    titleText.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    titleText.editAsText()
+      .setFontFamily(FONT).setFontSize(9)
+      .setBold(false).setForegroundColor(COLOR_GRAY);
+
+    // Horizontal rule under header via paragraph border
+    var rulePara = header.appendParagraph('');
+    var ruleAttr = {};
+    ruleAttr[DocumentApp.Attribute.BORDER_WIDTH] = 1;
+    ruleAttr[DocumentApp.Attribute.BORDER_COLOR] = COLOR_PRIMARY;
+    rulePara.setAttributes(ruleAttr);
+  } catch(e) {
+    console.warn('Header creation error: ' + e.message);
+  }
+
+  // --- Footer: company info ---
+  try {
+    var footer = doc.addFooter();
+    footer.clear();
+    var footerPara = footer.appendParagraph('KUILL SPA · RUT 78.405.972-3 · admin@example.com · Confidencial');
+    footerPara.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    footerPara.editAsText()
+      .setFontFamily(FONT).setFontSize(8)
+      .setForegroundColor(COLOR_GRAY).setBold(false);
+  } catch(e) {
+    console.warn('Footer creation error: ' + e.message);
+  }
+
+  // --- Style body paragraphs ---
+  var HEADING_RE = /^(PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SÉPTIMA|SÉTIMA|OCTAVA|NOVENA|DÉCIMA|DECIMA|ANEXO\s*A)/i;
+
+  var paragraphs = body.getParagraphs();
+  paragraphs.forEach(function(p, idx) {
+    var text = p.getText().trim();
+    var textEl = p.editAsText();
+
+    if (idx === 0 && text.indexOf('ACUERDO DE CONFIDENCIALIDAD') !== -1) {
+      p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      p.setSpacingAfter(4);
+      textEl.setFontFamily(FONT).setFontSize(20).setBold(true).setForegroundColor(COLOR_PRIMARY);
+
+    } else if (HEADING_RE.test(text) && text.length < 80) {
+      p.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      p.setSpacingBefore(12);
+      p.setSpacingAfter(4);
+      textEl.setFontFamily(FONT).setFontSize(11).setBold(true).setForegroundColor(COLOR_PRIMARY);
+
+    } else if (text === '') {
+      // keep empty lines minimal
+      p.setSpacingBefore(2);
+      p.setSpacingAfter(2);
+
+    } else {
+      p.setHeading(DocumentApp.ParagraphHeading.NORMAL);
+      textEl.setFontFamily(FONT).setFontSize(11).setBold(false).setForegroundColor(COLOR_BODY);
+      p.setSpacingAfter(4);
+      p.setLineSpacing(1.15);
+    }
+  });
+
   doc.saveAndClose();
 
   console.log('NDA template created: ' + docId);

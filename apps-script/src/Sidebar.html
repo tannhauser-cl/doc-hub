@@ -815,18 +815,37 @@
       document.getElementById('btnSaveStatus').addEventListener('click', handleSaveStatus);
     }
 
+    // ---- API helpers (fetch-based, works as standalone web page) ----
+    var WEB_APP_URL = '{{WEB_APP_URL}}';
+
+    function apiGet(action, params) {
+      var url = WEB_APP_URL + '?action=' + encodeURIComponent(action);
+      if (params) Object.keys(params).forEach(function(k) {
+        if (params[k] != null) url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+      });
+      return fetch(url).then(function(r) { return r.json(); });
+    }
+
+    function apiPost(action, body) {
+      var payload = JSON.stringify(Object.assign({ action: action }, body));
+      return fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': String(payload.length) },
+        body: payload
+      }).then(function(r) { return r.json(); });
+    }
+
     // ---- Template loading ----
     function loadTemplates(category) {
       renderLoadingCards();
-      google.script.run
-        .withSuccessHandler(function(templates) {
-          state.templates = templates || [];
+      apiGet('listTemplates', { category: category || '' })
+        .then(function(data) {
+          state.templates = data.templates || [];
           renderTemplates(state.templates);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           renderErrorCards(err && err.message ? err.message : String(err));
-        })
-        .listTemplatesForSidebar(category || null);
+        });
     }
 
     function renderLoadingCards() {
@@ -1001,8 +1020,8 @@
       clearFormError();
       showView('loading');
 
-      google.script.run
-        .withSuccessHandler(function(result) {
+      apiPost('renderTemplate', { id: template.id, inputs: inputs, createdBy: 'human:sidebar' })
+        .then(function(result) {
           if (result && result.error) {
             showView('form');
             showFormError(result.error);
@@ -1011,11 +1030,10 @@
           state.generatedDoc = result;
           showDoneView(result);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           showView('form');
           showFormError(err && err.message ? err.message : String(err));
-        })
-        .renderTemplateFromSidebar(template.id, inputs);
+        });
     }
 
     function showDoneView(result) {
@@ -1060,8 +1078,8 @@
       document.getElementById('blankForm').style.display = 'none';
       showView('loading');
 
-      google.script.run
-        .withSuccessHandler(function(result) {
+      apiPost('createBlank', { category: category, title: title, audience: audience, docType: docType, createdBy: 'human:sidebar' })
+        .then(function(result) {
           document.getElementById('btnCreateBlank').disabled = false;
           if (result && result.error) {
             document.getElementById('blankForm').style.display = 'block';
@@ -1072,13 +1090,12 @@
           state.generatedDoc = result;
           showDoneView(result);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           document.getElementById('btnCreateBlank').disabled = false;
           document.getElementById('blankForm').style.display = 'block';
           showView('catalog');
           showBlankError(err && err.message ? err.message : String(err));
-        })
-        .createBlankFromSidebar(category, title, audience, docType);
+        });
     }
 
     function showBlankError(msg) {
@@ -1095,27 +1112,8 @@
 
     // ---- Status panel ----
     function checkSelectedFile() {
-      google.script.run
-        .withSuccessHandler(function(info) {
-          if (!info || !info.fileId) {
-            document.getElementById('statusPanel').classList.remove('visible');
-            return;
-          }
-          state.selectedFileId = info.fileId;
-          state.selectedFileRegistryRow = info.registryRow;
-          var panel = document.getElementById('statusPanel');
-          panel.classList.add('visible');
-
-          // Set current status if known
-          if (info.registryRow && info.registryRow.status) {
-            var sel = document.getElementById('statusSelect');
-            sel.value = info.registryRow.status;
-          }
-        })
-        .withFailureHandler(function() {
-          document.getElementById('statusPanel').classList.remove('visible');
-        })
-        .getSelectedFileInfo();
+      // Status panel only works in Google Workspace context — hidden in web mode
+      document.getElementById('statusPanel').classList.remove('visible');
     }
 
     function handleSaveStatus() {
@@ -1127,8 +1125,8 @@
       btn.disabled = true;
       feedback.classList.remove('visible');
 
-      google.script.run
-        .withSuccessHandler(function(result) {
+      apiPost('updateStatus', { fileId: state.selectedFileId, status: status, updatedBy: 'human:sidebar' })
+        .then(function(result) {
           btn.disabled = false;
           if (result && result.ok) {
             feedback.textContent = '✓ Guardado';
@@ -1138,23 +1136,16 @@
             feedback.textContent = result && result.error ? result.error : 'Error';
             feedback.style.color = 'var(--color-error)';
             feedback.classList.add('visible');
-            setTimeout(function() {
-              feedback.classList.remove('visible');
-              feedback.style.color = '';
-            }, 3000);
+            setTimeout(function() { feedback.classList.remove('visible'); feedback.style.color = ''; }, 3000);
           }
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           btn.disabled = false;
           feedback.textContent = err && err.message ? err.message : 'Error';
           feedback.style.color = 'var(--color-error)';
           feedback.classList.add('visible');
-          setTimeout(function() {
-            feedback.classList.remove('visible');
-            feedback.style.color = '';
-          }, 3000);
-        })
-        .updateStatusFromSidebar(state.selectedFileId, status);
+          setTimeout(function() { feedback.classList.remove('visible'); feedback.style.color = ''; }, 3000);
+        });
     }
 
     // ---- Utils ----
