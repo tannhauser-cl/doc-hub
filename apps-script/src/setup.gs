@@ -13,6 +13,19 @@ function setup() {
 
   const cfg = getConfig();
 
+  // Log all IDs so we can spot missing values immediately
+  console.log('Config loaded. Key IDs:');
+  console.log('  registrySheetId   = ' + cfg.registrySheetId);
+  console.log('  auditTrailSheetId = ' + cfg.auditTrailSheetId);
+  console.log('  manifestSheetId   = ' + cfg.manifestSheetId);
+  console.log('  brandKitFolderId  = ' + cfg.brandKitFolderId);
+  console.log('  importsFolderId   = ' + cfg.importsFolderId);
+  console.log('  trashFolderId     = ' + cfg.trashFolderId);
+
+  if (!cfg.registrySheetId) throw new Error('registrySheetId is missing from TENANT_CONFIG');
+  if (!cfg.auditTrailSheetId) throw new Error('auditTrailSheetId is missing from TENANT_CONFIG');
+  if (!cfg.manifestSheetId) throw new Error('manifestSheetId is missing from TENANT_CONFIG');
+
   // --- Registry sheet ---
   console.log('Verifying Registry sheet...');
   getOrCreateSheet(cfg.registrySheetId, 'Registry', REGISTRY_HEADERS);
