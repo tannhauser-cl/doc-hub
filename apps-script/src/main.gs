@@ -39,6 +39,10 @@ function doGet(e) {
           tenant: cfg.tenantId
         });
       }
+      case 'setupBrandedTemplates': {
+        const result = setupBrandedTemplatesKuillV1();
+        return jsonResponse(result);
+      }
       default:
         return jsonResponse({ error: `Unknown GET action: ${action}` });
     }

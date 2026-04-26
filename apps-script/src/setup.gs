@@ -228,3 +228,176 @@ function seedManifestKuillV1() {
   console.log('seedManifestKuillV1 complete. Added: ' + added + ', Skipped: ' + (templates.length - added));
   return { added, skipped: templates.length - added };
 }
+
+/**
+ * Clones a branded source Drive file into destFolder, renames it to [template] {displayName},
+ * and replaces old-style literal placeholders with {{token}} notation.
+ * Idempotent: skips if [template] {displayName} already exists in dest folder.
+ */
+function cloneAndTokenizeTemplate(sourceId, destFolderId, displayName, tokenMap) {
+  const templateName = '[template] ' + displayName;
+  const destFolder = DriveApp.getFolderById(destFolderId);
+
+  const existing = destFolder.getFilesByName(templateName);
+  if (existing.hasNext()) {
+    const existingFile = existing.next();
+    console.log('cloneAndTokenize: skipping existing ' + templateName);
+    return { fileId: existingFile.getId(), skipped: true };
+  }
+
+  const sourceFile = DriveApp.getFileById(sourceId);
+  const copy = sourceFile.makeCopy(templateName, destFolder);
+  const newId = copy.getId();
+  const mimeType = copy.getMimeType();
+  console.log('cloneAndTokenize: created ' + templateName + ' → ' + newId);
+
+  const entries = Object.keys(tokenMap || {});
+  if (entries.length === 0) return { fileId: newId, skipped: false };
+
+  try {
+    if (mimeType === MimeType.GOOGLE_DOCS) {
+      const doc = DocumentApp.openById(newId);
+      const body = doc.getBody();
+      const header = doc.getHeader();
+      const footer = doc.getFooter();
+      entries.forEach(function(old) {
+        body.replaceText(escapeRegexChars(old), tokenMap[old]);
+        if (header) header.replaceText(escapeRegexChars(old), tokenMap[old]);
+        if (footer) footer.replaceText(escapeRegexChars(old), tokenMap[old]);
+      });
+      doc.saveAndClose();
+    } else if (mimeType === MimeType.GOOGLE_SLIDES) {
+      const pres = SlidesApp.openById(newId);
+      entries.forEach(function(old) {
+        pres.replaceAllText(old, tokenMap[old]);
+      });
+      pres.save();
+    } else {
+      console.log('cloneAndTokenize: unsupported mime for tokenization: ' + mimeType);
+    }
+  } catch (err) {
+    console.error('cloneAndTokenize error for ' + templateName + ': ' + err.message);
+  }
+
+  return { fileId: newId, skipped: false };
+}
+
+function escapeRegexChars(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function updateManifestTemplateFileId(templateId, newFileId, cfg) {
+  const ss = SpreadsheetApp.openById(cfg.manifestSheetId);
+  const sheet = ss.getSheetByName('Manifest');
+  if (!sheet) throw new Error('Manifest sheet not found');
+  const data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === templateId) {
+      sheet.getRange(i + 1, 5).setValue(newFileId);
+      console.log('Updated manifest ' + templateId + ' -> ' + newFileId);
+      return;
+    }
+  }
+  console.warn('Manifest row not found: ' + templateId);
+}
+
+function setupBrandedTemplatesKuillV1() {
+  const cfg = getConfig();
+  const results = [];
+
+  const LEGAL_FOLDER = '1-xbMZSpBCZ6qzl6t_cfopI3-7UetibDj';
+  const COMERCIAL_FOLDER = '10JX9h7CPtPajTWQQ0_g6cu722MOQWwWD';
+  const OLD_IDS = [
+    '13eXB5CL-O_xcO7g9RWbO5ZrD6RachpFAT0HRfYiMnek',
+    '1FVnxCGX6vsJb16NbWK3WaOSGcS608khfhsMpFxZp9M4',
+    '1hduDBe7cNCfmG6szSd75LBzFsNGkKr2LNrBDGF-Xjqg',
+    '1ic09kaIJ4KGNGGtPDODWHNgTxig70KmB44LffqSjhBI',
+    '1-mxHHcStulZz7QA-m-izjS2W-_yq78HTUINXAo5vfCI'
+  ];
+
+  // STEP 0: Trash old plain-text templates BEFORE clone check so idempotency doesn't match them
+  // setTrashed(true) works correctly on Shared Drive files unlike folder.removeFile()
+  OLD_IDS.forEach(function(oldId) {
+    try {
+      var oldFile = DriveApp.getFileById(oldId);
+      var name = oldFile.getName();
+      oldFile.setTrashed(true);
+      console.log('Pre-trashed old template: ' + name + ' (' + oldId + ')');
+    } catch (err) {
+      console.log('Could not trash ' + oldId + ': ' + err.message);
+    }
+  });
+
+  var templates = [
+    {
+      manifestId: 'nda-kuill-pilot',
+      sourceId: '1Z0b9fbURmFrAbyCX2256uwYafj4ceFdnT-EAMWo0syw',
+      destFolderId: LEGAL_FOLDER,
+      displayName: 'NDA-Kuill-Pilot',
+      tokenMap: {
+        'a [Día] de [Mes] de 2026': 'a {{fecha}}',
+        '[Nombre de la Institución]': '{{nombre_institucion}}',
+        '[Insertar RUT]': '{{rut_institucion}}',
+        '[Nombre del Representante]': '{{nombre_representante}}',
+        '[Insertar Dirección]': '{{direccion_institucion}}',
+        '[Insertar Comuna]': '{{comuna_institucion}}',
+        '[nombre-apellido]': '{{nombre_representante}}',
+        '[Insertar Meses]': '{{duracion_piloto}}',
+        '[Insertar Número] estudiantes': '{{numero_estudiantes}} estudiantes',
+        '[Insertar Número] docentes': '{{numero_docentes}} docentes',
+        '[Ej: 3ro a 6to Básico]': '{{nivel_educativo}}',
+        '[Ej: 09:00 a 18:00 hrs]': '{{horario_soporte}}',
+        '[Insertar número, ej: 2]': '{{numero_sesiones_feedback}}'
+      }
+    },
+    {
+      manifestId: 'acuerdo-piloto-colegio',
+      sourceId: '1kVAj-wpH3uNAhQK4zQiVgLASP3HCWPtsMf8nrnw2mis',
+      destFolderId: LEGAL_FOLDER,
+      displayName: 'Acuerdo-Piloto-Colegio',
+      tokenMap: {
+        'Colegio San Esteban Mártir': '{{nombre_colegio}}',
+        'San Esteban Mártir': '{{nombre_colegio}}',
+        'san-esteban-martir': '{{nombre_colegio_slug}}',
+        '[nombre cofundador docente]': '{{piloto_manager_kuill}}'
+      }
+    },
+    {
+      manifestId: 'propuesta-piloto',
+      sourceId: '1aCM5E8zmYhPhblO9vhg9pO6RLnuMUdKW3l2BPPn6t9I',
+      destFolderId: COMERCIAL_FOLDER,
+      displayName: 'Propuesta-Piloto',
+      tokenMap: {
+        'KUILL × Colegio San Esteban Mártir': 'KUILL × {{nombre_colegio}}',
+        'Colegio San Esteban Mártir': '{{nombre_colegio}}',
+        'San Esteban Mártir': '{{nombre_colegio}}',
+        'san-esteban-martir': '{{nombre_colegio_slug}}',
+        'Abril 2026': '{{fecha_inicio}}',
+        '[nombre cofundador docente]': '{{piloto_manager_kuill}}'
+      }
+    },
+    {
+      manifestId: 'deck-directivos',
+      sourceId: '1rEvv6DKU3ASDlWPOLR8OhxLFEQRBWI7YCePk8Bqtlgk',
+      destFolderId: COMERCIAL_FOLDER,
+      displayName: 'Deck-Directivos',
+      tokenMap: {
+        'Colegio San Esteban Mártir': '{{nombre_colegio}}',
+        'San Esteban Mártir': '{{nombre_colegio}}'
+      }
+    }
+  ];
+
+  templates.forEach(function(tpl) {
+    try {
+      var result = cloneAndTokenizeTemplate(tpl.sourceId, tpl.destFolderId, tpl.displayName, tpl.tokenMap);
+      updateManifestTemplateFileId(tpl.manifestId, result.fileId, cfg);
+      results.push({ id: tpl.manifestId, fileId: result.fileId, skipped: result.skipped, ok: true });
+    } catch (err) {
+      console.error('Error: ' + tpl.manifestId + ' — ' + err.message);
+      results.push({ id: tpl.manifestId, ok: false, error: err.message });
+    }
+  });
+
+  return { ok: true, results: results };
+}

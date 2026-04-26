@@ -41,9 +41,25 @@ function renderTemplate(id, inputs, createdBy) {
     throw { code: 'TEMPLATE_FILE_NOT_FOUND', message: `Template file ${template.template_file_id} not found: ${e.message}` };
   }
 
+  // Idempotency guard: prevent duplicate files from double POST (HTTP redirect replay)
+  const existingIter = outputFolder.getFilesByName(renderedName);
+  if (existingIter.hasNext()) {
+    const existing = existingIter.next();
+    const existingId = existing.getId();
+    const existingRow = registryFind(existingId);
+    auditLog('renderTemplateDuplicate', existingId, existingRow ? existingRow.doc_id : '', createdBy, { id, inputs }, null);
+    return {
+      docId: existingRow ? existingRow.doc_id : null,
+      fileId: existingId,
+      url: buildDocUrl(template.doc_type, existingId),
+      name: renderedName,
+      duplicate: true
+    };
+  }
+
   const copy = masterFile.makeCopy(renderedName, outputFolder);
   const copyId = copy.getId();
-  const copyUrl = copy.getUrl();
+  const copyUrl = buildDocUrl(template.doc_type, copyId);
 
   // Replace tokens based on mime type
   const mimeType = copy.getMimeType();
@@ -86,6 +102,28 @@ function renderTemplate(id, inputs, createdBy) {
   );
 
   return { docId, fileId: copyId, url: copyUrl, name: renderedName };
+}
+
+/**
+ * Builds a canonical edit URL for a Drive file based on its doc_type.
+ * @param {string} docType - 'document', 'presentation', or 'spreadsheet'
+ * @param {string} fileId
+ * @returns {string}
+ */
+function buildDocUrl(docType, fileId) {
+  switch ((docType || '').toLowerCase()) {
+    case 'presentation':
+    case 'slides':
+      return 'https://docs.google.com/presentation/d/' + fileId + '/edit';
+    case 'spreadsheet':
+    case 'sheet':
+    case 'sheets':
+      return 'https://docs.google.com/spreadsheets/d/' + fileId + '/edit';
+    case 'document':
+    case 'doc':
+    default:
+      return 'https://docs.google.com/document/d/' + fileId + '/edit';
+  }
 }
 
 /**
