@@ -113,9 +113,10 @@ function zodToJsonSchemaInner(schema: z.ZodTypeAny): Record<string, unknown> {
   }
 
   if (schema instanceof z.ZodRecord) {
+    const valueSchema = (schema as z.ZodRecord)._def.valueType as z.ZodTypeAny;
     const result: Record<string, unknown> = {
       type: "object",
-      additionalProperties: zodToJsonSchemaInner(schema.valueType as z.ZodTypeAny),
+      additionalProperties: zodToJsonSchemaInner(valueSchema),
     };
     if (schema.description) result["description"] = schema.description;
     return result;
