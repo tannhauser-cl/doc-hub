@@ -1,0 +1,15 @@
+# Files excluded from clasp push
+# Tenant-specific NDA builders should be pushed manually to each tenant's script project
+apps-script/src/setup-nda-*.gs
+*.kuill.gs
+
+# Repo tooling
+node_modules/
+scripts/
+docs/
+tests/
+schemas/
+*.json
+*.md
+*.lock
+.git/

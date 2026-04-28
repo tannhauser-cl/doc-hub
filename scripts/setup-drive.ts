@@ -172,8 +172,11 @@ async function main() {
   console.log('─'.repeat(60));
   console.log('Paste this into your tenant.config.json:\n');
 
+  const tenantId = process.env.DOC_HUB_TENANT_ID || 'my-tenant';
+  const adminEmail = process.env.DOC_HUB_ADMIN_EMAIL || 'admin@example.com';
+
   const config = {
-    tenantId: 'kuill',
+    tenantId,
     sharedDriveId: SHARED_DRIVE_ID,
     brandKitFolderId,
     registrySheetId: registryIds['document-registry'],
@@ -181,8 +184,8 @@ async function main() {
     manifestSheetId: registryIds['manifest'],
     importsFolderId,
     trashFolderId,
-    adminEmail: 'admin@example.com',
-    notifyEmail: 'admin@example.com',
+    adminEmail,
+    notifyEmail: adminEmail,
     trash: { docTtlDays: 30, snapshotTtlDays: 90 },
     lock: { defaultTtlMinutes: 30 },
     linter: {
