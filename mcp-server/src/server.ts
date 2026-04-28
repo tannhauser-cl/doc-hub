@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * server.ts — doc-hub MCP Server entry point.
  *
