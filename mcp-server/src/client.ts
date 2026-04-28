@@ -1,9 +1,13 @@
 /**
  * client.ts — HTTP client for the Apps Script Web App.
  *
- * All requests are authenticated with a Bearer token when configured.
- * GET requests use query parameters (?action=X&key=value).
- * POST requests send a JSON body with the action field included.
+ * Auth: token is sent as `token` field in the POST JSON body.
+ * Apps Script Web Apps do not expose HTTP headers to doGet/doPost, so
+ * the Authorization header is NOT used for backend auth. The token is
+ * included in POST bodies only (GET endpoints are intentionally public/read-only).
+ *
+ * Resilience: all requests have a 30s timeout and up to 3 retries with
+ * exponential backoff on network errors and 429/502/503/504 responses.
  */
 
 import { ServerConfig } from "./config.js";
@@ -21,22 +25,50 @@ interface EngineResponse {
   error?: DocHubError;
 }
 
-function buildHeaders(config: ServerConfig): Record<string, string> {
-  const headers: Record<string, string> = {
+function buildJsonHeaders(): Record<string, string> {
+  return {
     "Content-Type": "application/json",
     "Accept": "application/json",
   };
-  if (config.apiToken) {
-    headers["Authorization"] = `Bearer ${config.apiToken}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** Fetch with timeout (30 s) and exponential backoff on transient failures. */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  maxRetries = 2
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(30_000),
+      });
+      // Retry on transient server errors; surface others immediately
+      if (res.status === 429 || (res.status >= 502 && res.status <= 504)) {
+        if (attempt === maxRetries) return res;
+        await sleep(500 * Math.pow(3, attempt));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastError = err;
+      if (attempt === maxRetries) throw err;
+      await sleep(500 * Math.pow(3, attempt));
+    }
   }
-  return headers;
+  throw lastError;
 }
 
 async function parseResponse(res: Response): Promise<unknown> {
   const text = await res.text();
 
   if (!res.ok) {
-    // Non-2xx HTTP status — try to parse an engine error envelope, else throw generic
     let engineError: DocHubError | undefined;
     try {
       const parsed = JSON.parse(text) as Partial<EngineResponse>;
@@ -63,7 +95,7 @@ async function parseResponse(res: Response): Promise<unknown> {
     } satisfies DocHubError;
   }
 
-  // If the engine wraps responses in {ok, data, error} envelope, unwrap it.
+  // Unwrap {ok, data, error} envelope if present
   const envelope = parsed as Partial<EngineResponse>;
   if (typeof envelope === "object" && envelope !== null && "ok" in envelope) {
     if (envelope.ok === false && envelope.error) {
@@ -74,7 +106,6 @@ async function parseResponse(res: Response): Promise<unknown> {
     }
   }
 
-  // No envelope — return raw parsed value
   return parsed;
 }
 
@@ -91,9 +122,9 @@ export function makeClient(config: ServerConfig): AppsScriptClient {
       }
     }
 
-    const res = await fetch(url.toString(), {
+    const res = await fetchWithRetry(url.toString(), {
       method: "GET",
-      headers: buildHeaders(config),
+      headers: buildJsonHeaders(),
     });
 
     return parseResponse(res);
@@ -103,10 +134,18 @@ export function makeClient(config: ServerConfig): AppsScriptClient {
     action: string,
     body: Record<string, unknown>
   ): Promise<unknown> {
-    const res = await fetch(config.webAppUrl, {
+    // Token is passed in the POST body because Apps Script Web Apps
+    // do not expose HTTP request headers to doPost(e).
+    const payload: Record<string, unknown> = {
+      action,
+      ...(config.apiToken ? { token: config.apiToken } : {}),
+      ...body,
+    };
+
+    const res = await fetchWithRetry(config.webAppUrl, {
       method: "POST",
-      headers: buildHeaders(config),
-      body: JSON.stringify({ action, ...body }),
+      headers: buildJsonHeaders(),
+      body: JSON.stringify(payload),
     });
 
     return parseResponse(res);

@@ -11,6 +11,11 @@ function undoEvent(eventId) {
   const event = getAuditEvent(eventId);
   if (!event) throw { code: 'EVENT_NOT_FOUND', message: `Audit event ${eventId} not found.` };
 
+  // Idempotency guard: do not undo an event that has already been undone
+  if (event.status === 'undone') {
+    return { ok: false, description: `Event ${eventId} has already been undone.` };
+  }
+
   const inverseOp = event.inverse_op;
   if (!inverseOp) {
     return { ok: false, description: `Event ${eventId} has no inverse operation defined.` };
@@ -18,7 +23,10 @@ function undoEvent(eventId) {
 
   const description = executeInverseOp(inverseOp, event);
 
-  // Mark the original event as undone in the audit trail
+  // Mark the original event as undone so it cannot be reversed twice
+  markEventStatus(eventId, 'undone');
+
+  // Log the undo action itself
   auditLog('undoEvent', event.file_id, event.doc_id, Session.getActiveUser().getEmail() || 'system',
     { originalEventId: eventId, inverseOp },
     null
@@ -37,13 +45,23 @@ function undoEvent(eventId) {
 function undoBatch(since, until, actor) {
   if (!since) throw { code: 'MISSING_PARAM', message: 'since is required for undoBatch' };
 
-  const events = getAuditEventsBetween(since, until, actor);
+  // Snapshot the upper bound BEFORE fetching events so events created during this
+  // batch (undoEvent audit entries) are not included in the range.
+  const nowSnapshot = new Date().toISOString();
+  const effectiveUntil = until || nowSnapshot;
+
+  const events = getAuditEventsBetween(since, effectiveUntil, actor);
 
   // Sort descending (most recent first) so we reverse them in order
   events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const results = [];
   for (const event of events) {
+    // Skip undo-meta events and already-undone events (handled inside undoEvent too,
+    // but checking here avoids unnecessary calls)
+    if (event.action === 'undoEvent' || event.status === 'undone') {
+      continue;
+    }
     try {
       const result = undoEvent(event.event_id);
       results.push({ eventId: event.event_id, ok: result.ok, description: result.description });
@@ -56,7 +74,7 @@ function undoBatch(since, until, actor) {
     }
   }
 
-  return { results };
+  return { results, count: results.filter(r => r.ok).length };
 }
 
 /**

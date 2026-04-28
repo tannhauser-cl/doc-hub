@@ -27,6 +27,8 @@ function lockDoc(fileId, lockedBy, ttlMinutes) {
   const now = new Date();
   const lockedUntil = new Date(now.getTime() + ttl * 60 * 1000).toISOString();
 
+  // registryUpdate and auditLog each hold withScriptLock internally,
+  // serializing the writes against concurrent executions.
   registryUpdate(fileId, {
     locked_by: lockedBy,
     locked_until: lockedUntil,

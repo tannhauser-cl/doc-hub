@@ -2,20 +2,44 @@
  * main.gs — Web App entry points
  * Routes GET/POST requests to action handlers.
  * All responses are JSON.
+ *
+ * AUTH MODEL:
+ *   - doGet: serves sidebar and read-only endpoints (listTemplates, getBrandTokens) without auth.
+ *     Apps Script Web Apps don't expose HTTP headers, so GET auth is impractical.
+ *   - doPost: ALL actions require a valid `token` field in the JSON body, checked against
+ *     the API_TOKEN Script Property (set in Apps Script Editor → Project Settings).
+ *     Administrative actions (seedManifest, setupBrandedTemplates, createNDATemplate, getStats)
+ *     have been moved from GET to POST to prevent side-effects from crawlers/link-previewers.
  */
 
 /**
+ * Validates the token in a POST body against API_TOKEN Script Property.
+ * Throws an error object (caught by doPost) if invalid.
+ * @param {Object} body - Parsed POST JSON body
+ */
+function requireAuth(body) {
+  var expected = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
+  if (!expected) {
+    throw { code: 'SERVER_MISCONFIGURED', message: 'API_TOKEN not set in Script Properties. See setup docs.' };
+  }
+  var token = body.token || null;
+  if (!token || token !== expected) {
+    throw { code: 'UNAUTHORIZED', message: 'Missing or invalid token.' };
+  }
+}
+
+/**
  * HTTP GET handler.
- * Reads `action` from query params.
+ * Serves the sidebar and read-only, non-sensitive endpoints without auth.
+ * All mutating/administrative actions have been moved to doPost.
  */
 function doGet(e) {
   try {
     const action = e.parameter && e.parameter.action;
 
-    // Serve sidebar as standalone web page
+    // Serve sidebar as standalone web page (no action or action='sidebar')
     if (!action || action === 'sidebar') {
       try {
-        const cfg = getConfig();
         const webAppUrl = ScriptApp.getService().getUrl();
         let html = HtmlService.createHtmlOutputFromFile('src/Sidebar').getContent();
         html = html.split('{{WEB_APP_URL}}').join(webAppUrl);
@@ -27,50 +51,23 @@ function doGet(e) {
           '<html><body style="font-family:sans-serif;padding:24px">' +
           '<h2 style="color:#7B1FA2">🦊 DOC HUB</h2>' +
           '<p>Error loading sidebar: ' + htmlErr.message + '</p>' +
-          '<p>Action: ' + action + '</p>' +
           '</body></html>'
         ).setTitle('DOC HUB - Error');
       }
-    }
-
-    if (!action) {
-      return jsonResponse({ error: 'Missing action parameter' });
     }
 
     switch (action) {
       case 'listTemplates': {
         const category = e.parameter.category || null;
         const templates = listTemplates(category);
-        return jsonResponse({ templates });
+        return jsonResponse({ ok: true, templates });
       }
       case 'getBrandTokens': {
         const tokens = getBrandTokens();
-        return jsonResponse(tokens);
-      }
-      case 'seedManifest': {
-        const result = seedManifestKuillV1();
-        return jsonResponse(result);
-      }
-      case 'getStats': {
-        const cfg = getConfig();
-        const regSheet = getRegistrySheet();
-        const mfSheet = SpreadsheetApp.openById(cfg.manifestSheetId).getSheetByName('Manifest');
-        return jsonResponse({
-          registry_rows: Math.max(0, regSheet.getLastRow() - 1),
-          manifest_rows: mfSheet ? Math.max(0, mfSheet.getLastRow() - 1) : 0,
-          tenant: cfg.tenantId
-        });
-      }
-      case 'setupBrandedTemplates': {
-        const result = setupBrandedTemplatesKuillV1();
-        return jsonResponse(result);
-      }
-      case 'createNDATemplate': {
-        const result = createNDATemplate();
-        return jsonResponse(result);
+        return jsonResponse({ ok: true, ...tokens });
       }
       default:
-        return jsonResponse({ error: `Unknown GET action: ${action}` });
+        return jsonResponse({ ok: false, error: `Unknown GET action: ${action}. Administrative actions require POST with token.` });
     }
   } catch (err) {
     return jsonResponse(serializeError(err));
@@ -79,7 +76,8 @@ function doGet(e) {
 
 /**
  * HTTP POST handler.
- * Reads `action` from JSON body.
+ * ALL actions require a valid `token` field in the JSON body.
+ * Administrative/mutating actions that were previously on GET are now here.
  */
 function doPost(e) {
   try {
@@ -88,23 +86,27 @@ function doPost(e) {
       try {
         body = JSON.parse(e.postData.contents);
       } catch (parseErr) {
-        return jsonResponse({ error: 'Invalid JSON body: ' + parseErr.message });
+        return jsonResponse({ ok: false, error: 'Invalid JSON body: ' + parseErr.message });
       }
     }
 
     const action = body.action;
     if (!action) {
-      return jsonResponse({ error: 'Missing action field in request body' });
+      return jsonResponse({ ok: false, error: 'Missing action field in request body' });
     }
 
+    // All POST actions require a valid token
+    requireAuth(body);
+
     switch (action) {
+      // --- Document operations ---
       case 'renderTemplate': {
         const result = renderTemplate(body.id, body.inputs || {}, body.createdBy);
         return jsonResponse(result);
       }
       case 'searchDocs': {
         const docs = searchDocs(body.q || null, body.category || null, body.status || null, body.limit || 50);
-        return jsonResponse({ docs });
+        return jsonResponse({ ok: true, docs });
       }
       case 'readDoc': {
         const result = readDoc(body.fileId);
@@ -162,8 +164,34 @@ function doPost(e) {
         updateDocStatus(body.fileId, body.status, body.updatedBy);
         return jsonResponse({ ok: true });
       }
+
+      // --- Administrative actions (moved from GET) ---
+      case 'getStats': {
+        const cfg = getConfig();
+        const regSheet = getRegistrySheet();
+        const mfSheet = SpreadsheetApp.openById(cfg.manifestSheetId).getSheetByName('Manifest');
+        return jsonResponse({
+          ok: true,
+          registry_rows: Math.max(0, regSheet.getLastRow() - 1),
+          manifest_rows: mfSheet ? Math.max(0, mfSheet.getLastRow() - 1) : 0,
+          tenant: cfg.tenantId
+        });
+      }
+      case 'seedManifest': {
+        const result = seedManifestKuillV1();
+        return jsonResponse(result);
+      }
+      case 'setupBrandedTemplates': {
+        const result = setupBrandedTemplatesKuillV1();
+        return jsonResponse(result);
+      }
+      case 'createNDATemplate': {
+        const result = createNDATemplate();
+        return jsonResponse(result);
+      }
+
       default:
-        return jsonResponse({ error: `Unknown POST action: ${action}` });
+        return jsonResponse({ ok: false, error: `Unknown POST action: ${action}` });
     }
   } catch (err) {
     return jsonResponse(serializeError(err));
@@ -189,15 +217,14 @@ function jsonResponse(obj) {
 function serializeError(err) {
   if (err && typeof err === 'object') {
     if (err.code) {
-      // Structured error thrown by our code
-      return { error: err.message || err.code, code: err.code, details: err };
+      return { ok: false, error: err.message || err.code, code: err.code, details: err };
     }
     if (err instanceof Error) {
-      return { error: err.message, stack: err.stack };
+      return { ok: false, error: err.message, stack: err.stack };
     }
-    return { error: JSON.stringify(err) };
+    return { ok: false, error: JSON.stringify(err) };
   }
-  return { error: String(err) };
+  return { ok: false, error: String(err) };
 }
 
 /**
@@ -231,7 +258,6 @@ function editDoc(fileId, ops, editedBy) {
         if (op.section) {
           body.replaceText(op.section, op.content);
         } else {
-          // Replace entire body text
           body.clear();
           body.appendParagraph(op.content);
         }
@@ -242,17 +268,14 @@ function editDoc(fileId, ops, editedBy) {
     throw { code: 'UNSUPPORTED_MIME', message: `editDoc only supports Google Docs. Got: ${mimeType}` };
   }
 
-  // Update registry
   const now = new Date().toISOString();
   registryUpdate(fileId, { last_edited_by: editedBy, last_edited_at: now });
 
-  // Log audit
   const eventId = auditLog('editDoc', fileId, reg ? reg.doc_id : '', editedBy,
     { ops, editedBy },
     { action: 'noop', fileId, description: 'Edit operations cannot be automatically reversed' }
   );
 
-  // Return a pseudo revision ID (Drive API revision IDs require Drive Advanced Service)
   const revisionId = `rev_${fileId}_${Date.now()}`;
   return { revisionId };
 }

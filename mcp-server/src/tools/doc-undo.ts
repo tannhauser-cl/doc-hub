@@ -11,18 +11,21 @@ export const DocUndoInputSchema = z
   .object({
     event_id: z
       .string()
+      .min(1)
       .optional()
       .describe(
         "Audit event ID to undo (from the AuditTrail). Use this for a single targeted undo."
       ),
     batch_since: z
       .string()
+      .datetime()
       .optional()
       .describe(
-        "ISO 8601 timestamp. Undo all events at or after this time. Requires batch_since if not using event_id."
+        "ISO 8601 timestamp. Undo all events at or after this time. Provide this OR event_id, not both."
       ),
     batch_until: z
       .string()
+      .datetime()
       .optional()
       .describe(
         "ISO 8601 timestamp. Upper bound for batch undo (exclusive). Defaults to now."
@@ -35,8 +38,8 @@ export const DocUndoInputSchema = z
       ),
   })
   .refine(
-    (d) => d.event_id != null || d.batch_since != null,
-    "Either event_id or batch_since must be provided."
+    (d) => (d.event_id != null) !== (d.batch_since != null),
+    "Provide exactly one of event_id (single undo) or batch_since (batch undo), not both and not neither."
   );
 
 export type DocUndoInput = z.infer<typeof DocUndoInputSchema>;
@@ -63,10 +66,9 @@ export async function docUndo(
     };
   }
 
-  // Batch undo
-  const body: Record<string, unknown> = {
-    since: input.batch_since!,
-  };
+  // Batch undo — batch_since is guaranteed by the refine above
+  const batchSince = input.batch_since as string;
+  const body: Record<string, unknown> = { since: batchSince };
   if (input.batch_until != null) body["until"] = input.batch_until;
   if (input.batch_actor != null) body["actor"] = input.batch_actor;
 
@@ -75,11 +77,12 @@ export async function docUndo(
   const eventIds = Array.isArray(data["event_ids"])
     ? (data["event_ids"] as unknown[]).map(String)
     : [];
+  const successCount = Number.isInteger(data["count"]) ? (data["count"] as number) : eventIds.length;
 
   return {
     mode: "batch",
-    events_undone: typeof data["count"] === "number" ? data["count"] : eventIds.length,
+    events_undone: successCount,
     event_ids: eventIds,
-    summary: String(data["message"] ?? `Batch undo completed. ${eventIds.length} event(s) reversed.`),
+    summary: String(data["message"] ?? `Batch undo completed. ${successCount} event(s) reversed.`),
   };
 }

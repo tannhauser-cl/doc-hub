@@ -3,42 +3,90 @@
  */
 
 /**
+ * Acquires the script-level lock, runs fn(), then releases.
+ * Serializes concurrent writes to any sheet to prevent race conditions.
+ * @param {Function} fn
+ * @param {number} [timeoutMs=20000]
+ * @returns {*} Return value of fn()
+ */
+function withScriptLock(fn, timeoutMs) {
+  const lock = LockService.getScriptLock();
+  const acquired = lock.tryLock(timeoutMs || 20000);
+  if (!acquired) {
+    throw { code: 'LOCK_TIMEOUT', message: 'Could not acquire script lock within timeout. Try again shortly.' };
+  }
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Updates the status column of an audit trail event row.
+ * Used to mark events as 'undone' after a successful undo.
+ * @param {string} eventId
+ * @param {string} status - e.g. 'undone'
+ */
+function markEventStatus(eventId, status) {
+  return withScriptLock(function() {
+    const sheet = getAuditSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const eventIdCol = headers.indexOf('event_id');
+    const statusCol = headers.indexOf('status');
+    if (statusCol < 0) return; // status column not present
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][eventIdCol] === eventId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue(status);
+        return;
+      }
+    }
+  });
+}
+
+/**
  * Appends a new row to the Registry sheet.
  * @param {Object} row - Plain object with Registry fields (uses REGISTRY_COLS for ordering)
  */
 function registryAppend(row) {
-  const sheet = getRegistrySheet();
-  const rowArray = REGISTRY_HEADERS.map(col => {
-    const val = row[col];
-    return val !== undefined && val !== null ? val : '';
+  return withScriptLock(function() {
+    const sheet = getRegistrySheet();
+    const rowArray = REGISTRY_HEADERS.map(col => {
+      const val = row[col];
+      return val !== undefined && val !== null ? val : '';
+    });
+    sheet.appendRow(rowArray);
   });
-  sheet.appendRow(rowArray);
 }
 
 /**
  * Finds a Registry row by file_id and updates the specified columns.
+ * Serialized with script lock to prevent concurrent read-modify-write races.
  * @param {string} fileId
  * @param {Object} updates - Key/value pairs of columns to update
  * @returns {boolean} true if found and updated, false if not found
  */
 function registryUpdate(fileId, updates) {
-  const sheet = getRegistrySheet();
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const fileIdColIndex = headers.indexOf('file_id');
+  return withScriptLock(function() {
+    const sheet = getRegistrySheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const fileIdColIndex = headers.indexOf('file_id');
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][fileIdColIndex] === fileId) {
-      for (const [key, value] of Object.entries(updates)) {
-        const colIndex = headers.indexOf(key);
-        if (colIndex >= 0) {
-          sheet.getRange(i + 1, colIndex + 1).setValue(value !== null && value !== undefined ? value : '');
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][fileIdColIndex] === fileId) {
+        for (const [key, value] of Object.entries(updates)) {
+          const colIndex = headers.indexOf(key);
+          if (colIndex >= 0) {
+            sheet.getRange(i + 1, colIndex + 1).setValue(value !== null && value !== undefined ? value : '');
+          }
         }
+        return true;
       }
-      return true;
     }
-  }
-  return false;
+    return false;
+  });
 }
 
 /**
@@ -118,24 +166,26 @@ function registrySearch(q, category, status, limit) {
  * @param {Object|null} inverseOp
  * @returns {string} eventId
  */
-function auditLog(action, fileId, docId, actor, payload, inverseOp) {
-  const sheet = getAuditSheet();
-  const eventId = generateEventId();
-  const timestamp = new Date().toISOString();
+function auditLog(action, fileId, docId, actor, payload, inverseOp, status) {
+  return withScriptLock(function() {
+    const sheet = getAuditSheet();
+    const eventId = generateEventId();
+    const timestamp = new Date().toISOString();
 
-  const row = [
-    eventId,
-    timestamp,
-    action,
-    fileId || '',
-    docId || '',
-    actor || '',
-    payload ? JSON.stringify(payload) : '',
-    inverseOp ? JSON.stringify(inverseOp) : '',
-    'ok'
-  ];
-  sheet.appendRow(row);
-  return eventId;
+    const row = [
+      eventId,
+      timestamp,
+      action,
+      fileId || '',
+      docId || '',
+      actor || '',
+      payload ? JSON.stringify(payload) : '',
+      inverseOp ? JSON.stringify(inverseOp) : '',
+      status || 'ok'
+    ];
+    sheet.appendRow(row);
+    return eventId;
+  });
 }
 
 /**
@@ -227,6 +277,8 @@ function getAuditEventsBetween(since, until, actor) {
     if (isNaN(ts.getTime())) continue;
     if (ts < sinceDate || ts > untilDate) continue;
     if (actor && row.actor !== actor) continue;
+    // Skip already-undone events and undo meta-events
+    if (row.status === 'undone' || row.action === 'undoEvent') continue;
 
     if (row.payload_json) {
       try { row.payload = JSON.parse(row.payload_json); } catch (e) { row.payload = null; }
