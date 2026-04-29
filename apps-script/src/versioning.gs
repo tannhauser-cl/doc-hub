@@ -293,21 +293,15 @@ function adoptFile(fileId, category, name, audience, adoptedBy) {
     'application/vnd.ms-excel': MimeType.GOOGLE_SHEETS
   };
 
-  let adoptedFileId = fileId;
-  let adoptedFile = file;
+  const adoptedFileId = fileId;
+  const adoptedFile = file;
   const originalFolderId = cfg.importsFolderId;
+  // DriveApp cannot convert Office formats to Google native — Drive Advanced Service required.
+  // If the caller needs a Google Doc/Sheets/Slides, they must enable Drive Advanced Service.
+  const needsConversion = !!conversionMap[mimeType];
 
-  if (conversionMap[mimeType]) {
-    // Convert by creating a copy with Drive conversion
-    // Apps Script cannot directly convert; we copy and note the original
-    // The standard approach is to use the Drive Advanced Service, but since we're
-    // using basic DriveApp, we'll move and rename, noting conversion is manual.
-    adoptedFile.setName(name);
-    adoptedFile.moveTo(outputFolder);
-  } else {
-    adoptedFile.setName(name);
-    adoptedFile.moveTo(outputFolder);
-  }
+  adoptedFile.setName(name);
+  adoptedFile.moveTo(outputFolder);
 
   const url = adoptedFile.getUrl();
   const docId = generateDocId();
@@ -343,7 +337,11 @@ function adoptFile(fileId, category, name, audience, adoptedBy) {
     }
   );
 
-  return { docId, fileId: adoptedFileId, url };
+  const result = { docId, fileId: adoptedFileId, url };
+  if (needsConversion) {
+    result.conversionWarning = 'File was moved but NOT converted to Google format. Enable the Drive Advanced Service in Apps Script to convert Office documents automatically.';
+  }
+  return result;
 }
 
 /**

@@ -110,12 +110,12 @@
           "default": 7,
           "description": "Flag files in _Imports/ that haven't been adopted after this many days."
         },
-        "similarityThreshold": {
-          "type": "number",
-          "default": 0.85,
-          "description": "Levenshtein similarity ratio above which two filenames are flagged as duplicates."
+        "duplicateLevenshteinThreshold": {
+          "type": "integer",
+          "default": 5,
+          "description": "Max Levenshtein edit distance between two filenames in the same folder before they are flagged as possible duplicates. Lower = stricter."
         },
-        "forbiddenPatterns": {
+        "forbiddenNamePatterns": {
           "type": "array",
           "default": ["FINAL", "_v\\d+", "\\(\\d+\\)", "Copy of", "DRAFT_", "WIP_", "OLD_"],
           "description": "Regex patterns in filenames that trigger a naming violation."

@@ -117,23 +117,34 @@ function runLinter() {
     }
   }
 
-  // 4. Check for similar filename pairs using Levenshtein
-  for (let i = 0; i < allFiles.length; i++) {
-    for (let j = i + 1; j < allFiles.length; j++) {
-      const a = allFiles[i].fileName;
-      const b = allFiles[j].fileName;
-      // Only compare files in the same folder
-      if (allFiles[i].folderId !== allFiles[j].folderId) continue;
-      const dist = levenshtein(a.toLowerCase(), b.toLowerCase());
-      if (dist > 0 && dist <= duplicateThreshold) {
-        violations.push({
-          fileId: allFiles[i].fileId,
-          fileName: a,
-          folderId: allFiles[i].folderId,
-          type: 'duplicate',
-          severity: 'warning',
-          message: `Possible duplicate: "${a}" vs "${b}" (edit distance: ${dist})`
-        });
+  // 4. Check for similar filename pairs using Levenshtein (O(n²) — capped at 200 files)
+  const MAX_DUP_CHECK = 200;
+  if (allFiles.length > MAX_DUP_CHECK) {
+    violations.push({
+      fileId: '',
+      fileName: '[Linter]',
+      folderId: sharedDriveId,
+      type: 'info',
+      severity: 'info',
+      message: `Duplicate filename check skipped: ${allFiles.length} files exceed the ${MAX_DUP_CHECK}-file limit for O(n²) comparison. Reduce drive size or increase linter.duplicateLevenshteinThreshold.`
+    });
+  } else {
+    for (let i = 0; i < allFiles.length; i++) {
+      for (let j = i + 1; j < allFiles.length; j++) {
+        const a = allFiles[i].fileName;
+        const b = allFiles[j].fileName;
+        if (allFiles[i].folderId !== allFiles[j].folderId) continue;
+        const dist = levenshtein(a.toLowerCase(), b.toLowerCase());
+        if (dist > 0 && dist <= duplicateThreshold) {
+          violations.push({
+            fileId: allFiles[i].fileId,
+            fileName: a,
+            folderId: allFiles[i].folderId,
+            type: 'duplicate',
+            severity: 'warning',
+            message: `Possible duplicate: "${a}" vs "${b}" (edit distance: ${dist})`
+          });
+        }
       }
     }
   }

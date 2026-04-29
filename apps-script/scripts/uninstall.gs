@@ -45,7 +45,7 @@ function uninstall() {
   // 2. Export Registry to CSV
   Logger.log('Step 2: Exporting Registry to CSV...');
   try {
-    var regSheet = SpreadsheetApp.openById(cfg.registrySheetId).getActiveSheet();
+    var regSheet = SpreadsheetApp.openById(cfg.registrySheetId).getSheetByName('Registry');
     var csvData = regSheet.getDataRange().getValues();
     var csvStr = csvData.map(function(row) {
       return row.map(function(cell) {
@@ -54,7 +54,7 @@ function uninstall() {
       }).join(',');
     }).join('\n');
 
-    var registryFolder = DriveApp.getFolderById(cfg.registrySheetId)
+    var registryFolder = DriveApp.getFileById(cfg.registrySheetId)
       .getParents().next();
     var csvFile = registryFolder.createFile('Document-Registry-export-' + today + '.csv', csvStr, MimeType.CSV);
     Logger.log('✓ Registry exported: ' + csvFile.getUrl());
@@ -65,12 +65,8 @@ function uninstall() {
   // 3. Make Registry folder read-only (move files to a decommissioned folder)
   Logger.log('Step 3: Archiving Registry...');
   try {
-    // We can't rename a folder via DriveApp directly, but we can create a note file
-    var regFolderFile = DriveApp.getFolderById(
-      SpreadsheetApp.openById(cfg.registrySheetId).getId()
-    );
     var noteContent = '# doc-hub decommissioned ' + today + '\n\nThis Registry was decommissioned on ' + today + '.\nThe doc-hub engine is no longer active.\nAll documents remain in their Drive folders.\nSee Document-Registry-export-' + today + '.csv for the final Registry state.';
-    var noteFolder = DriveApp.getFolderById(cfg.registrySheetId).getParents().next();
+    var noteFolder = DriveApp.getFileById(cfg.registrySheetId).getParents().next();
     noteFolder.createFile('DECOMMISSIONED-' + today + '.md', noteContent, MimeType.PLAIN_TEXT);
     Logger.log('✓ Decommission note created in Registry folder');
   } catch (e) {

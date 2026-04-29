@@ -191,8 +191,8 @@ async function main() {
     linter: {
       enabled: true,
       orphanWarningDays: 7,
-      similarityThreshold: 0.85,
-      forbiddenPatterns: ['FINAL', '_v\\d+', '\\(\\d+\\)', 'Copy of', 'DRAFT_', 'WIP_', 'OLD_'],
+      duplicateLevenshteinThreshold: 5,
+      forbiddenNamePatterns: ['FINAL', '_v\\d+', '\\(\\d+\\)', 'Copy of', 'DRAFT_', 'WIP_', 'OLD_'],
     },
     webAppUrl: 'REPLACE_AFTER_CLASP_DEPLOY',
   };

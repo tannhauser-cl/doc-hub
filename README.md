@@ -11,7 +11,7 @@
 - **Brand-consistent by default** — every document inherits from your brand kit; a linter catches drift daily
 - **Full audit trail** — every create, edit, snapshot, supersede, adopt, and archive is logged with inverse-ops for rollback
 - **Ad-hoc friendly** — not every doc needs a template; "create blank with branding" and "adopt existing" keep everything in the registry without breaking structure
-- **Safe to uninstall** — `scripts/uninstall.gs` disables the engine without touching user documents
+- **Safe to uninstall** — `apps-script/scripts/uninstall.gs` disables the engine without touching user documents
 
 ## Architecture
 
@@ -80,7 +80,8 @@ doc-hub/
 ├── mcp-server/           # MCP server — wraps Apps Script Web App for agents
 ├── skills/doc-hub/       # Agent skills — installable in Claude Code & Hermes
 ├── schemas/              # JSON schemas: tenant.config, manifest, registry
-├── scripts/              # install.gs, uninstall.gs, reinstall.gs, setup-drive.ts
+├── scripts/              # setup-drive.ts (Node.js — creates Drive structure)
+│   └── (apps-script/scripts/  # install.gs, uninstall.gs, reinstall.gs)
 └── docs/                 # Architecture, onboarding, agent usage, versioning, rollback
 ```
 
