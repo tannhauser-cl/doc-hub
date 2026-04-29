@@ -29,9 +29,16 @@ export function getConfig(): ServerConfig {
     );
   }
 
+  const apiToken = process.env["DOC_HUB_API_TOKEN"] || undefined;
+  if (!apiToken) {
+    process.stderr.write(
+      "[doc-hub] WARNING: DOC_HUB_API_TOKEN is not set. All POST requests to the Apps Script engine will fail with UNAUTHORIZED.\n"
+    );
+  }
+
   _config = {
     webAppUrl: webAppUrl.trim(),
-    apiToken: process.env["DOC_HUB_API_TOKEN"] || undefined,
+    apiToken,
     tenantId: (process.env["DOC_HUB_TENANT_ID"] || "default").trim(),
   };
 

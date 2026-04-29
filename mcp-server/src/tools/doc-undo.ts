@@ -58,11 +58,19 @@ export async function docUndo(
   if (input.event_id != null) {
     const raw = await client.post("undoEvent", { eventId: input.event_id });
     const data = raw as Record<string, unknown>;
+    const action = data["action"] ? String(data["action"]) : null;
+    const fileId = data["fileId"] ? String(data["fileId"]) : null;
+    const description = data["description"] ? String(data["description"]) : null;
+    const summaryParts = [
+      action ? `Operation: ${action}` : null,
+      fileId ? `File: ${fileId}` : null,
+      description ?? `Event ${input.event_id} undone successfully.`,
+    ].filter(Boolean);
     return {
       mode: "single",
       events_undone: 1,
       event_ids: [input.event_id],
-      summary: String(data["message"] ?? `Event ${input.event_id} undone successfully.`),
+      summary: summaryParts.join(" | "),
     };
   }
 
@@ -74,15 +82,20 @@ export async function docUndo(
 
   const raw = await client.post("undoBatch", body);
   const data = raw as Record<string, unknown>;
-  const eventIds = Array.isArray(data["event_ids"])
-    ? (data["event_ids"] as unknown[]).map(String)
+  const results = Array.isArray(data["results"])
+    ? (data["results"] as Array<Record<string, unknown>>)
     : [];
-  const successCount = Number.isInteger(data["count"]) ? (data["count"] as number) : eventIds.length;
+  const successCount = Number.isInteger(data["count"]) ? (data["count"] as number) : results.filter(r => r["ok"]).length;
+  const eventIds = results.map(r => String(r["eventId"] ?? ""));
+  const failedCount = results.length - successCount;
+  const summaryParts = [`Batch undo completed: ${successCount} event(s) reversed`];
+  if (failedCount > 0) summaryParts.push(`${failedCount} failed`);
+  if (input.batch_actor) summaryParts.push(`actor: ${input.batch_actor}`);
 
   return {
     mode: "batch",
     events_undone: successCount,
     event_ids: eventIds,
-    summary: String(data["message"] ?? `Batch undo completed. ${successCount} event(s) reversed.`),
+    summary: summaryParts.join(", ") + ".",
   };
 }

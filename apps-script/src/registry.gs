@@ -47,7 +47,7 @@ function markEventStatus(eventId, status) {
 
 /**
  * Appends a new row to the Registry sheet.
- * @param {Object} row - Plain object with Registry fields (uses REGISTRY_COLS for ordering)
+ * @param {Object} row - Plain object with Registry fields (uses REGISTRY_HEADERS for column ordering)
  */
 function registryAppend(row) {
   return withScriptLock(function() {

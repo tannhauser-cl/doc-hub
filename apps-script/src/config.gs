@@ -83,33 +83,6 @@ function getManifestSheet() {
 /** Valid lifecycle statuses for Registry documents. */
 const VALID_DOC_STATUSES = ['draft', 'review', 'approved', 'published', 'archived'];
 
-/** Registry column order (0-indexed) */
-const REGISTRY_COLS = {
-  doc_id: 0,
-  file_id: 1,
-  name: 2,
-  category: 3,
-  folder_path: 4,
-  folder_id: 5,
-  template_id: 6,
-  template_version: 7,
-  status: 8,
-  created_by: 9,
-  created_at: 10,
-  last_edited_by: 11,
-  last_edited_at: 12,
-  owner: 13,
-  audience: 14,
-  locked_by: 15,
-  locked_until: 16,
-  supersedes: 17,
-  superseded_by: 18,
-  snapshots_json: 19,
-  imported_from: 20,
-  brand_check_status: 21,
-  brand_check_at: 22,
-  url: 23
-};
 
 const REGISTRY_HEADERS = [
   'doc_id', 'file_id', 'name', 'category', 'folder_path', 'folder_id',

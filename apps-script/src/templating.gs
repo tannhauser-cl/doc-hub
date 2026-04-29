@@ -61,12 +61,13 @@ function renderTemplate(id, inputs, createdBy) {
   const copyId = copy.getId();
   const copyUrl = buildDocUrl(template.doc_type, copyId);
 
-  // Replace tokens based on mime type
+  // Replace tokens based on mime type; collect any {{token}} that remained unresolved
   const mimeType = copy.getMimeType();
+  let unresolvedTokens = [];
   if (mimeType === MimeType.GOOGLE_DOCS) {
-    replaceTokensInDoc(copyId, inputs);
+    unresolvedTokens = replaceTokensInDoc(copyId, inputs);
   } else if (mimeType === MimeType.GOOGLE_SLIDES) {
-    replaceTokensInSlides(copyId, inputs);
+    unresolvedTokens = replaceTokensInSlides(copyId, inputs);
   } else if (mimeType === MimeType.GOOGLE_SHEETS) {
     replaceTokensInSheet(copyId, inputs);
   }
@@ -97,11 +98,16 @@ function renderTemplate(id, inputs, createdBy) {
 
   // Audit log
   auditLog('renderTemplate', copyId, docId, createdBy,
-    { templateId: id, inputs, renderedName },
+    { templateId: id, inputs, renderedName, ...(unresolvedTokens.length > 0 ? { unresolvedTokens } : {}) },
     { action: 'archiveDoc', fileId: copyId, description: 'Delete the rendered copy to undo' }
   );
 
-  return { docId, fileId: copyId, url: copyUrl, name: renderedName };
+  const result = { docId, fileId: copyId, url: copyUrl, name: renderedName };
+  if (unresolvedTokens.length > 0) {
+    result.unresolvedTokens = unresolvedTokens;
+    result.warning = `${unresolvedTokens.length} token(s) were not replaced: {{${unresolvedTokens.join('}}, {{')}}}`;
+  }
+  return result;
 }
 
 /**
@@ -163,8 +169,10 @@ function resolveNamingPattern(pattern, inputs) {
 
 /**
  * Replaces {{TOKEN}} placeholders in a Google Doc body.
+ * Returns an array of token names that were not resolved (still present after replacement).
  * @param {string} fileId
  * @param {Object} inputs
+ * @returns {string[]} unresolved token names
  */
 function replaceTokensInDoc(fileId, inputs) {
   const doc = DocumentApp.openById(fileId);
@@ -191,13 +199,25 @@ function replaceTokensInDoc(fileId, inputs) {
     }
   }
 
+  // Detect remaining unresolved tokens
+  const unresolved = [];
+  const bodyText = body.getText();
+  const tokenRegex = /\{\{([^}]+)\}\}/g;
+  let match;
+  while ((match = tokenRegex.exec(bodyText)) !== null) {
+    if (!unresolved.includes(match[1])) unresolved.push(match[1]);
+  }
+
   doc.saveAndClose();
+  return unresolved;
 }
 
 /**
  * Replaces {{TOKEN}} placeholders in all text ranges of a Google Slides presentation.
+ * Returns an array of token names that were not resolved (still present after replacement).
  * @param {string} fileId
  * @param {Object} inputs
+ * @returns {string[]} unresolved token names
  */
 function replaceTokensInSlides(fileId, inputs) {
   const presentation = SlidesApp.openById(fileId);
@@ -233,7 +253,24 @@ function replaceTokensInSlides(fileId, inputs) {
     }
   }
 
+  // Detect remaining unresolved tokens across all slide text
+  const unresolved = [];
+  const tokenRegex = /\{\{([^}]+)\}\}/g;
+  for (const slide of slides) {
+    for (const shape of slide.getShapes()) {
+      try {
+        const text = shape.getText().asString();
+        let match;
+        while ((match = tokenRegex.exec(text)) !== null) {
+          if (!unresolved.includes(match[1])) unresolved.push(match[1]);
+        }
+        tokenRegex.lastIndex = 0;
+      } catch (e) { /* shape has no text */ }
+    }
+  }
+
   presentation.saveAndClose();
+  return unresolved;
 }
 
 /**

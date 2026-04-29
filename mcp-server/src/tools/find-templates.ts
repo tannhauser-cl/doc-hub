@@ -43,20 +43,18 @@ export interface FindTemplatesResult {
 }
 
 /**
- * Simple keyword relevance score: counts how many words from the intent
- * appear in the template name + description (case-insensitive).
+ * Computes relevance score and reason in a single pass over intentWords.
+ * Returns { score, reason } without repeating the filter.
  */
-function scoreTemplate(template: ManifestRow, intentWords: string[]): number {
+function scoreRelevance(template: ManifestRow, intentWords: string[]): { score: number; reason: string } {
   const haystack = `${template.name} ${template.description}`.toLowerCase();
-  return intentWords.filter((w) => haystack.includes(w)).length;
-}
-
-function buildRelevanceReason(template: ManifestRow, intentWords: string[]): string {
-  const matches = intentWords.filter((w) =>
-    `${template.name} ${template.description}`.toLowerCase().includes(w)
-  );
-  if (matches.length === 0) return "No direct keyword match, but may still be relevant.";
-  return `Matches intent keywords: ${matches.map((w) => `"${w}"`).join(", ")}.`;
+  const matches = intentWords.filter((w) => haystack.includes(w));
+  return {
+    score: matches.length,
+    reason: matches.length === 0
+      ? "No direct keyword match, but may still be relevant."
+      : `Matches intent keywords: ${matches.map((w) => `"${w}"`).join(", ")}.`,
+  };
 }
 
 function parseJsonArrayField(raw: string | undefined): string[] {
@@ -104,8 +102,9 @@ export async function findTemplates(
     };
 
     if (intentWords.length > 0) {
-      entry.relevance_score = scoreTemplate(t, intentWords);
-      entry.relevance_reason = buildRelevanceReason(t, intentWords);
+      const { score, reason } = scoreRelevance(t, intentWords);
+      entry.relevance_score = score;
+      entry.relevance_reason = reason;
     }
 
     return entry;

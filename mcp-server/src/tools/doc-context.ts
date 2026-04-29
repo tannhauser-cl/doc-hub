@@ -42,6 +42,7 @@ export interface DocContextResult {
   existing_docs: ExistingDocSummary[];
   search_tip: string;
   template_recommendation: string | undefined;
+  partial?: boolean;
 }
 
 export async function docContext(
@@ -49,6 +50,7 @@ export async function docContext(
   client: AppsScriptClient
 ): Promise<DocContextResult> {
   // Run template search and doc search in parallel
+  let docSearchFailed = false;
   const [templateResult, rawDocs] = await Promise.all([
     findTemplates({ intent: input.intent, category: input.category }, client),
     client
@@ -57,7 +59,10 @@ export async function docContext(
         ...(input.category ? { category: input.category } : {}),
         limit: 10,
       })
-      .catch(() => [] as unknown[]),
+      .catch(() => {
+        docSearchFailed = true;
+        return [] as unknown[];
+      }),
   ]);
 
   const docs = rawDocs as RegistryRow[];
@@ -81,8 +86,9 @@ export async function docContext(
       ? `Best template match: "${topTemplate.name}" (id: ${topTemplate.id}). ${topTemplate.relevance_reason ?? ""} Required inputs: ${topTemplate.required_inputs.join(", ") || "none"}.`
       : undefined;
 
-  const searchTip =
-    existingDocs.length > 0
+  const searchTip = docSearchFailed
+    ? "Existing document search failed (backend unreachable). Proceed carefully to avoid creating duplicates."
+    : existingDocs.length > 0
       ? `Before creating a new document, review these ${existingDocs.length} existing doc(s) for reusable content. Avoid creating duplicates.`
       : "No closely related documents found. You can proceed with doc_create or doc_create_blank.";
 
@@ -91,5 +97,6 @@ export async function docContext(
     existing_docs: existingDocs,
     search_tip: searchTip,
     template_recommendation: templateRecommendation,
+    ...(docSearchFailed ? { partial: true } : {}),
   };
 }

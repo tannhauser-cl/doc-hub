@@ -32,7 +32,7 @@ function undoEvent(eventId) {
     null
   );
 
-  return { ok: true, description };
+  return { ok: true, description, action: event.action, fileId: event.file_id, docId: event.doc_id };
 }
 
 /**

@@ -311,6 +311,5 @@ function editDoc(fileId, ops, editedBy) {
     { action: 'noop', fileId, description: 'Edit operations cannot be automatically reversed' }
   );
 
-  const revisionId = `rev_${fileId}_${Date.now()}`;
-  return { revisionId };
+  return { ok: true, fileId, editedAt: now, eventId };
 }

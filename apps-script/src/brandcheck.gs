@@ -158,8 +158,9 @@ function checkDocBrand(fileId, brandFonts, brandColors, violations) {
     const child = body.getChild(i);
     checkElementBrand(child, brandFonts, brandColors, violations, `Paragraph ${i + 1}`);
   }
-  doc.saveAndClose();
+  // No saveAndClose — this is a read-only inspection
 }
+
 
 /**
  * Recursively checks a document element for brand compliance.
@@ -177,12 +178,12 @@ function checkElementBrand(element, brandFonts, brandColors, violations, context
         const text = textEl.getText();
         if (!text) continue;
 
-        // Check font family
+        // Check font family (exact match on each comma-separated family name)
         if (brandFonts.length > 0) {
           const fontFamily = textEl.getFontFamily();
           if (fontFamily) {
-            const fontLower = fontFamily.toLowerCase().trim();
-            const isBrandFont = brandFonts.some(f => fontLower.includes(f) || f.includes(fontLower));
+            const docFonts = fontFamily.split(',').map(f => f.toLowerCase().trim());
+            const isBrandFont = docFonts.some(f => brandFonts.includes(f));
             if (!isBrandFont) {
               violations.push({
                 element: context,
@@ -249,12 +250,12 @@ function checkSlidesBrand(fileId, brandFonts, brandColors, violations) {
           const context = `Slide ${slideIdx + 1}, Shape ${shapeIdx + 1}, Run ${runIdx + 1}`;
           const style = run.getTextStyle();
 
-          // Check font
+          // Check font (exact match on each comma-separated family name)
           if (brandFonts.length > 0) {
             const font = style.getFontFamily();
             if (font) {
-              const fontLower = font.toLowerCase().trim();
-              const isBrandFont = brandFonts.some(f => fontLower.includes(f) || f.includes(fontLower));
+              const slideFonts = font.split(',').map(f => f.toLowerCase().trim());
+              const isBrandFont = slideFonts.some(f => brandFonts.includes(f));
               if (!isBrandFont) {
                 violations.push({
                   element: context,
@@ -295,7 +296,7 @@ function checkSlidesBrand(fileId, brandFonts, brandColors, violations) {
     });
   });
 
-  presentation.saveAndClose();
+  // No saveAndClose — this is a read-only inspection
 }
 
 /**
