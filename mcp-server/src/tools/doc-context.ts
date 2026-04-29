@@ -65,7 +65,9 @@ export async function docContext(
       }),
   ]);
 
-  const docs = rawDocs as RegistryRow[];
+  // GAS searchDocs returns { ok: true, docs: [...] } — extract the array
+  const docsEnvelope = rawDocs as { docs?: RegistryRow[] } | RegistryRow[];
+  const docs = Array.isArray(docsEnvelope) ? docsEnvelope : (docsEnvelope.docs ?? []);
 
   const existingDocs: ExistingDocSummary[] = docs
     .filter((d) => d.status !== "archived")

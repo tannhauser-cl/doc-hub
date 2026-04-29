@@ -50,7 +50,8 @@ describe("docFind — result mapping", () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ ok: true, data: [mockRow] }),
+      // GAS searchDocs returns { ok: true, docs: [...] }
+      text: async () => JSON.stringify({ ok: true, docs: [mockRow] }),
     })));
 
     const client = makeClient({ webAppUrl: "https://example.com/exec", apiToken: "t", tenantId: "test" });

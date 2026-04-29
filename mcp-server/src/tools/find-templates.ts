@@ -80,7 +80,9 @@ export async function findTemplates(
   if (input.category) params["category"] = input.category;
 
   const raw = await client.get("listTemplates", params);
-  const rows = raw as ManifestRow[];
+  // GAS listTemplates returns { ok: true, templates: [...] } — extract the array
+  const envelope = raw as { templates?: ManifestRow[] } | ManifestRow[];
+  const rows = Array.isArray(envelope) ? envelope : (envelope.templates ?? []);
 
   const intentWords: string[] = input.intent
     ? input.intent

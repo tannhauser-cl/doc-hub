@@ -59,7 +59,9 @@ export async function docFind(
   if (input.limit !== undefined) body["limit"] = input.limit;
 
   const raw = await client.post("searchDocs", body);
-  const rows = raw as RegistryRow[];
+  // GAS searchDocs returns { ok: true, docs: [...] } — extract the array
+  const envelope = raw as { docs?: RegistryRow[] } | RegistryRow[];
+  const rows = Array.isArray(envelope) ? envelope : (envelope.docs ?? []);
 
   return {
     count: rows.length,
