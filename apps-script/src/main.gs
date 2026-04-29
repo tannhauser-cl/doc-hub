@@ -13,6 +13,21 @@
  */
 
 /**
+ * Asserts that body[field] is a non-empty string.
+ * Throws VALIDATION_ERROR if missing or blank.
+ * @param {Object} body
+ * @param {string} field
+ * @returns {string}
+ */
+function requireString(body, field) {
+  const val = body[field];
+  if (val === null || val === undefined || String(val).trim() === '') {
+    throw { code: 'VALIDATION_ERROR', message: 'Missing required field: ' + field };
+  }
+  return String(val);
+}
+
+/**
  * Validates the token in a POST body against API_TOKEN Script Property.
  * Throws an error object (caught by doPost) if invalid.
  * @param {Object} body - Parsed POST JSON body
@@ -101,6 +116,7 @@ function doPost(e) {
     switch (action) {
       // --- Document operations ---
       case 'renderTemplate': {
+        requireString(body, 'id');
         const result = renderTemplate(body.id, body.inputs || {}, body.createdBy);
         return jsonResponse(result);
       }
@@ -109,50 +125,67 @@ function doPost(e) {
         return jsonResponse({ ok: true, docs });
       }
       case 'readDoc': {
+        requireString(body, 'fileId');
         const result = readDoc(body.fileId);
         return jsonResponse(result);
       }
       case 'editDoc': {
+        requireString(body, 'fileId');
         const result = editDoc(body.fileId, body.ops || [], body.editedBy);
         return jsonResponse(result);
       }
       case 'snapshotDoc': {
+        requireString(body, 'fileId');
         const result = snapshotDoc(body.fileId, body.snapshotBy);
         return jsonResponse(result);
       }
       case 'supersedeDoc': {
+        requireString(body, 'fileId');
         const result = supersedeDoc(body.fileId, body.supersededBy);
         return jsonResponse(result);
       }
       case 'archiveDoc': {
+        requireString(body, 'fileId');
         archiveDoc(body.fileId, body.archivedBy);
         return jsonResponse({ ok: true });
       }
       case 'adoptFile': {
+        requireString(body, 'fileId');
+        requireString(body, 'category');
+        requireString(body, 'name');
         const result = adoptFile(body.fileId, body.category, body.name, body.audience, body.adoptedBy);
         return jsonResponse(result);
       }
       case 'createBlank': {
+        requireString(body, 'category');
+        requireString(body, 'title');
         const result = createBlank(body.category, body.title, body.audience, body.docType, body.createdBy);
         return jsonResponse(result);
       }
       case 'lockDoc': {
+        requireString(body, 'fileId');
+        requireString(body, 'lockedBy');
         const result = lockDoc(body.fileId, body.lockedBy, body.ttlMinutes || null);
         return jsonResponse(result);
       }
       case 'unlockDoc': {
+        requireString(body, 'fileId');
+        requireString(body, 'unlockedBy');
         const result = unlockDoc(body.fileId, body.unlockedBy);
         return jsonResponse(result);
       }
       case 'undoEvent': {
+        requireString(body, 'eventId');
         const result = undoEvent(body.eventId);
         return jsonResponse(result);
       }
       case 'undoBatch': {
+        requireString(body, 'since');
         const result = undoBatch(body.since, body.until || null, body.actor || null);
         return jsonResponse(result);
       }
       case 'brandCheck': {
+        requireString(body, 'fileId');
         const result = brandCheck(body.fileId);
         return jsonResponse(result);
       }
@@ -161,6 +194,8 @@ function doPost(e) {
         return jsonResponse(result);
       }
       case 'updateStatus': {
+        requireString(body, 'fileId');
+        requireString(body, 'status');
         updateDocStatus(body.fileId, body.status, body.updatedBy);
         return jsonResponse({ ok: true });
       }

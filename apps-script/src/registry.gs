@@ -31,17 +31,17 @@ function withScriptLock(fn, timeoutMs) {
 function markEventStatus(eventId, status) {
   return withScriptLock(function() {
     const sheet = getAuditSheet();
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const eventIdCol = headers.indexOf('event_id');
-    const statusCol = headers.indexOf('status');
-    if (statusCol < 0) return; // status column not present
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][eventIdCol] === eventId) {
-        sheet.getRange(i + 1, statusCol + 1).setValue(status);
-        return;
-      }
-    }
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+
+    const eventIdRange = sheet.getRange(1, 1, lastRow, 1);
+    const cell = eventIdRange.createTextFinder(eventId).matchEntireCell(true).findNext();
+    if (!cell) return;
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const statusCol = headers.indexOf('status') + 1; // 1-indexed
+    if (statusCol <= 0) return;
+    sheet.getRange(cell.getRow(), statusCol).setValue(status);
   });
 }
 
@@ -190,30 +190,33 @@ function auditLog(action, fileId, docId, actor, payload, inverseOp, status) {
 
 /**
  * Retrieves a single audit event row by event_id.
+ * Uses TextFinder on the event_id column (A) for O(1) amortized lookup.
  * @param {string} eventId
  * @returns {Object|null}
  */
 function getAuditEvent(eventId) {
   const sheet = getAuditSheet();
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return null;
-  const headers = data[0];
-  const eventIdCol = headers.indexOf('event_id');
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][eventIdCol] === eventId) {
-      const obj = rowToObject(data[i], headers);
-      // Parse JSON fields
-      if (obj.payload_json) {
-        try { obj.payload = JSON.parse(obj.payload_json); } catch (e) { obj.payload = null; }
-      }
-      if (obj.inverse_op_json) {
-        try { obj.inverse_op = JSON.parse(obj.inverse_op_json); } catch (e) { obj.inverse_op = null; }
-      }
-      return obj;
-    }
+  // Search only in column A (event_id) to avoid false matches in payload JSON
+  const eventIdRange = sheet.getRange(1, 1, lastRow, 1);
+  const cell = eventIdRange.createTextFinder(eventId).matchEntireCell(true).findNext();
+  if (!cell) return null;
+
+  const row = cell.getRow();
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const data = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+
+  const obj = rowToObject(data, headers);
+  if (obj.payload_json) {
+    try { obj.payload = JSON.parse(obj.payload_json); } catch (e) { obj.payload = null; }
   }
-  return null;
+  if (obj.inverse_op_json) {
+    try { obj.inverse_op = JSON.parse(obj.inverse_op_json); } catch (e) { obj.inverse_op = null; }
+  }
+  return obj;
 }
 
 /**

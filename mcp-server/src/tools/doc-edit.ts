@@ -63,8 +63,6 @@ export interface DocEditLocked {
 
 export type DocEditResult = DocEditSuccess | DocEditLocked;
 
-const LOCK_TTL_MINUTES = 5;
-
 export async function docEdit(
   input: DocEditInput,
   client: AppsScriptClient,
@@ -77,7 +75,6 @@ export async function docEdit(
     await client.post("lockDoc", {
       fileId: input.file_id,
       lockedBy: editedBy,
-      ttlMinutes: LOCK_TTL_MINUTES,
     });
   } catch (err) {
     const e = err as DocHubError;

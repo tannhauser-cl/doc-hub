@@ -140,11 +140,17 @@ function errorResponse(err: unknown): {
   content: Array<{ type: "text"; text: string }>;
   isError: true;
 } {
-  const docHubErr = err as Partial<DocHubError>;
-  const payload =
-    docHubErr.code != null
-      ? { error: docHubErr.message, code: docHubErr.code, details: docHubErr.details }
-      : { error: err instanceof Error ? err.message : String(err) };
+  let payload: Record<string, unknown>;
+  if (err instanceof DocHubError) {
+    payload = { error: err.message, code: err.code, details: err.details };
+  } else if (err instanceof Error) {
+    payload = { error: err.message };
+  } else {
+    const e = err as Record<string, unknown> | undefined;
+    payload = (e && typeof e.code === "string")
+      ? { error: e.message ?? e.code, code: e.code, details: e }
+      : { error: String(err) };
+  }
 
   return {
     content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],

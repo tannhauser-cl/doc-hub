@@ -13,17 +13,13 @@ export const DocFindInputSchema = z.object({
     .optional()
     .describe("Free-text search across document names and categories."),
   category: z
-    .string()
+    .enum(["Legal", "Comercial", "Internos", "Governance", "__adhoc-blank", "__adopted"])
     .optional()
-    .describe(
-      "Filter by category. One of: Legal, Comercial, Internos, Governance, __adhoc-blank, __adopted."
-    ),
+    .describe("Filter by document category."),
   status: z
-    .string()
+    .enum(["draft", "review", "approved", "published", "archived"])
     .optional()
-    .describe(
-      "Filter by lifecycle status. One of: draft, review, approved, published, archived."
-    ),
+    .describe("Filter by lifecycle status."),
   limit: z
     .number()
     .int()

@@ -47,6 +47,8 @@ Edit `tenant.config.json` and set `webAppUrl` to the URL from step 3.
 In the Apps Script editor, go to Project Settings → Script Properties, add:
 - Key: `TENANT_CONFIG`
 - Value: the full contents of your `tenant.config.json`
+- Key: `API_TOKEN`
+- Value: a strong random secret (e.g., `openssl rand -hex 32`). This token authenticates every MCP → Apps Script call. Keep it secret.
 
 ## Step 6 — Build and configure MCP server
 
@@ -66,7 +68,8 @@ Add to Claude Code's MCP config (`~/.claude/mcp.json` or project `.claude/mcp.js
       "args": ["path/to/doc-hub/mcp-server/dist/server.js"],
       "env": {
         "DOC_HUB_WEB_APP_URL": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
-        "DOC_HUB_TENANT_ID": "kuill"
+        "DOC_HUB_TENANT_ID": "kuill",
+        "DOC_HUB_API_TOKEN": "your-secret-token-from-step-5"
       }
     }
   }

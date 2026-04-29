@@ -8,11 +8,8 @@ import { AppsScriptClient } from "../client.js";
 
 export const DocCreateBlankInputSchema = z.object({
   category: z
-    .string()
-    .min(1)
-    .describe(
-      "Target category for the new document. One of: Legal, Comercial, Internos, Governance."
-    ),
+    .enum(["Legal", "Comercial", "Internos", "Governance"])
+    .describe("Target category for the new document."),
   title: z
     .string()
     .min(1)

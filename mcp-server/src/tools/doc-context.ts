@@ -20,11 +20,9 @@ export const DocContextInputSchema = z.object({
       "Description of what you want to create or find (e.g. 'NDA for Acme Corp pilot', 'onboarding guide for new engineers'). Used to search templates and existing docs."
     ),
   category: z
-    .string()
+    .enum(["Legal", "Comercial", "Internos", "Governance"])
     .optional()
-    .describe(
-      "Optionally restrict search to a specific category: Legal, Comercial, Internos, Governance."
-    ),
+    .describe("Optionally restrict search to a specific category."),
 });
 
 export type DocContextInput = z.infer<typeof DocContextInputSchema>;

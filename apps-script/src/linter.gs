@@ -44,6 +44,9 @@ function runLinter() {
     const headers = data[0];
     const fileIdCol = headers.indexOf('file_id');
     const statusCol = headers.indexOf('status');
+    if (fileIdCol < 0 || statusCol < 0) {
+      throw { code: 'REGISTRY_HEADER_MISSING', message: `Registry sheet is missing required columns (file_id or status). Expected headers: ${REGISTRY_HEADERS.join(', ')}` };
+    }
     for (let i = 1; i < data.length; i++) {
       const rowStatus = String(data[i][statusCol]).toLowerCase();
       if (rowStatus !== 'deleted') {
@@ -100,8 +103,9 @@ function runLinter() {
       });
     }
 
-    // 3. Check stale imports
-    if (folderId === importsFolderId && createdDate) {
+    // 3. Check stale imports (matches both direct parent and nested subfolders)
+    const isInImports = importsFolderId && (folderId === importsFolderId || (fileInfo.folderPath || '').includes('/_Imports'));
+    if (isInImports && createdDate) {
       const ageMs = now - new Date(createdDate);
       const ageDays = ageMs / (1000 * 60 * 60 * 24);
       if (ageDays > orphanWarningDays) {

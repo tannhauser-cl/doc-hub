@@ -80,6 +80,9 @@ function getManifestSheet() {
   return sheet;
 }
 
+/** Valid lifecycle statuses for Registry documents. */
+const VALID_DOC_STATUSES = ['draft', 'review', 'approved', 'published', 'archived'];
+
 /** Registry column order (0-indexed) */
 const REGISTRY_COLS = {
   doc_id: 0,

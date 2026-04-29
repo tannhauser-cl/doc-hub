@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { makeClient } from "./client.js";
+import { DocHubError } from "./types.js";
 
 const BASE_CONFIG = {
   webAppUrl: "https://script.google.com/test/exec",
   apiToken: "test-token",
+  tenantId: "test",
 };
 
 function mockFetch(...responses: Array<{ status: number; body: unknown }>) {
@@ -50,14 +52,22 @@ describe("makeClient — POST", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("throws DocHubError when engine returns ok:false", async () => {
+  it("throws DocHubError (instanceof Error) when engine returns ok:false", async () => {
     vi.stubGlobal("fetch", mockFetch({
       status: 200,
       body: { ok: false, error: { code: "NOT_FOUND", message: "doc not found" } },
     }));
     const client = makeClient(BASE_CONFIG);
-    await expect(client.post("readDoc", { fileId: "bad" }))
-      .rejects.toMatchObject({ code: "NOT_FOUND", message: "doc not found" });
+    let thrown: unknown;
+    try {
+      await client.post("readDoc", { fileId: "bad" });
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown).toBeInstanceOf(DocHubError);
+    expect((thrown as DocHubError).code).toBe("NOT_FOUND");
+    expect((thrown as DocHubError).message).toBe("doc not found");
   });
 
   it("includes token in POST body", async () => {
@@ -66,8 +76,8 @@ describe("makeClient — POST", () => {
     const client = makeClient(BASE_CONFIG);
     await client.post("archiveDoc", { fileId: "f1", archivedBy: "user" });
 
-    const callArgs = fetchMock.mock.calls[0];
-    const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+    const callArgs = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(callArgs[1].body as string);
     expect(body.token).toBe("test-token");
     expect(body.action).toBe("archiveDoc");
   });
@@ -84,7 +94,7 @@ describe("makeClient — GET", () => {
     const client = makeClient(BASE_CONFIG);
     await client.get("listTemplates", { category: "Legal" });
 
-    const url = fetchMock.mock.calls[0][0] as string;
+    const url = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[0];
     expect(url).toContain("action=listTemplates");
     expect(url).toContain("category=Legal");
   });

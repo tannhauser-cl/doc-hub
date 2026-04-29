@@ -92,12 +92,12 @@ When `doc-edit` is called:
 
 Every doc-hub operation records an `inverse_op` in the Audit-Trail. To undo:
 
-```bash
-# Single operation
-doc-undo --event_id evt_20260503_143022_a1b2c3
+```typescript
+// Single operation
+doc_undo({ event_id: "evt_20260503_143022_a1b2c3" })
 
-# Batch (e.g. undo everything the linter auto-renamed)
-doc-undo --batch_since "2026-05-03T14:00:00Z" --batch_actor "agent:linter"
+// Batch (e.g. undo everything the linter auto-renamed)
+doc_undo({ batch_since: "2026-05-03T14:00:00Z", batch_actor: "agent:linter" })
 ```
 
 Undo is non-destructive: deleted files go to `_Trash/` (30-day TTL) before permanent purge.

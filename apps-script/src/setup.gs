@@ -407,5 +407,5 @@ function setupBrandedTemplatesKuillV1() {
  * To use: add apps-script/src/setup-nda-kuill.gs to your local checkout before clasp push.
  */
 function createNDATemplate() {
-  throw new Error('createNDATemplate requires setup-nda-kuill.gs — see apps-script/src/setup-nda-kuill.gs.example');
+  throw { code: 'NOT_AVAILABLE', message: 'createNDATemplate is not configured for this tenant. Add apps-script/src/setup-nda-kuill.gs before clasp push.' };
 }

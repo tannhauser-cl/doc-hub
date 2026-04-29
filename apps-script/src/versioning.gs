@@ -352,9 +352,8 @@ function adoptFile(fileId, category, name, audience, adoptedBy) {
  * @param {string} updatedBy
  */
 function updateDocStatus(fileId, status, updatedBy) {
-  const validStatuses = ['draft', 'review', 'approved', 'published', 'archived'];
-  if (!validStatuses.includes(status)) {
-    throw { code: 'INVALID_STATUS', message: `Invalid status "${status}". Must be one of: ${validStatuses.join(', ')}` };
+  if (!VALID_DOC_STATUSES.includes(status)) {
+    throw { code: 'INVALID_STATUS', message: `Invalid status "${status}". Must be one of: ${VALID_DOC_STATUSES.join(', ')}` };
   }
 
   const reg = registryFind(fileId);

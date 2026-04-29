@@ -69,6 +69,7 @@ function undoBatch(since, until, actor) {
       results.push({
         eventId: event.event_id,
         ok: false,
+        code: err.code || 'UNKNOWN_ERROR',
         description: err.message || JSON.stringify(err)
       });
     }

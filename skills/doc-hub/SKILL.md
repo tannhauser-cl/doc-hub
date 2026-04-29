@@ -152,3 +152,9 @@ Documents can move forward or backward by editing the `status` field via `doc_ed
 | `NOT_FOUND` | Document or template does not exist in Registry | Verify with `doc_find` or `find_templates` |
 | `PERMISSION_DENIED` | Agent lacks Drive access | Ask user to check service account permissions |
 | `TEMPLATE_INACTIVE` | Template exists but is disabled | Notify user; suggest alternatives via `find_templates` |
+| `VALIDATION_ERROR` | Required field missing or blank in request | Check the parameters — one of the required fields was empty |
+| `INVALID_STATUS` | Status value is not one of the allowed values | Use: `draft`, `review`, `approved`, `published`, `archived` |
+| `LOCK_TIMEOUT` | Could not acquire script lock within 20 s | Retry the request; a concurrent write is in progress |
+| `HTTP_ERROR` | Non-2xx HTTP response from Apps Script | Check web app deployment status; may be a transient error |
+| `PARSE_ERROR` | Apps Script returned non-JSON (often an HTML error page) | Check web app URL and deployment; may be an auth or timeout issue |
+| `NOT_AVAILABLE` | Feature not configured for this tenant | Check tenant-specific setup (e.g. `createNDATemplate` requires a private setup file) |

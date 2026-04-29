@@ -111,16 +111,15 @@ doc_undo({
 ```
 
 **Batch (time range + actor):**
-```
+```typescript
 doc_undo({
-  batch: {
-    actor?: string,        // email or agent ID that performed the operations
-    after?: string,        // ISO timestamp — undo events after this time
-    before?: string,       // ISO timestamp — undo events before this time
-    operations?: string[]  // filter by operation type: ["create", "edit", "archive", ...]
-  }
+  batch_since: string,    // ISO 8601 timestamp — undo events at or after this time (required for batch)
+  batch_until?: string,   // ISO 8601 timestamp — undo events before this time (defaults to now)
+  batch_actor?: string    // filter by actor email or agent ID that performed the operations
 })
 ```
+
+Note: `event_id` and `batch_since` are mutually exclusive — provide exactly one.
 
 ### Step 4: Handle partial failures in batch undo
 

@@ -27,8 +27,8 @@ export interface TenantConfig {
   linter?: {
     enabled?: boolean;
     orphanWarningDays?: number;
-    similarityThreshold?: number;
-    forbiddenPatterns?: string[];
+    duplicateLevenshteinThreshold?: number;
+    forbiddenNamePatterns?: string[];
   };
 }
 
@@ -113,8 +113,14 @@ export interface BrandViolation {
   severity: "warning" | "error";
 }
 
-export interface DocHubError {
+export class DocHubError extends Error {
   code: string;
-  message: string;
   details?: unknown;
+
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = "DocHubError";
+    this.code = code;
+    this.details = details;
+  }
 }

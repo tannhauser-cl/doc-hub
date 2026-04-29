@@ -74,26 +74,20 @@ If you need to understand the current content structure before editing, call `do
 Translate the user's request into one or more declarative operations:
 
 ```typescript
-// Replace an exact string
-{ op: "replace", find: "exact text to find", replace: "new text" }
+// Replace an exact string or entire document body
+{ type: "replace", section: "exact text or heading to replace", content: "new text" }
+// Omit 'section' to clear and rewrite the entire document body.
 
-// Replace a named section (heading + body)
-{ op: "replace_section", heading: "Pricing", replace: "New pricing content..." }
+// Append content at the end of the document (or after a section heading)
+{ type: "append", section?: "Terms", content: "Additional content here." }
 
-// Append to end of document
-{ op: "append", content: "Additional content here." }
-
-// Append after a named section
-{ op: "append_after", heading: "Terms", content: "New paragraph after Terms section." }
-
-// Prepend at start of document
-{ op: "prepend", content: "Preamble text." }
-
-// Update Registry status only
-{ op: "set_status", status: "review" }
+// Prepend content at the beginning of the document (or before a section heading)
+{ type: "prepend", section?: "Introduction", content: "Preamble text." }
 ```
 
-Use the most targeted operation possible. Prefer `replace` over full rewrites. If the user wants to change multiple things, batch them in a single `doc_edit` call.
+Use the most targeted operation possible. Prefer `replace` with a specific `section` over full rewrites. If the user wants to change multiple things, batch them in a single `doc_edit` call.
+
+To update only the Registry status (e.g., draft → review), use `doc_undo` to reverse a status change, or call the underlying `updateStatus` action directly.
 
 ### Step 4: Confirm significant edits
 
@@ -107,11 +101,11 @@ For minor typo fixes or formatting, proceed without confirmation.
 
 ### Step 5: Call doc_edit
 
-```
+```typescript
 doc_edit({
   file_id: string,
   ops: [
-    { op: "replace", find: "...", replace: "..." },
+    { type: "replace", section: "...", content: "..." },
     // more ops if needed
   ],
   edited_by?: string    // defaults to current agent identity

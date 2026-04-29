@@ -18,11 +18,17 @@ export interface AppsScriptClient {
   post(action: string, body: Record<string, unknown>): Promise<unknown>;
 }
 
+/** Serialized error shape returned by the Apps Script engine in JSON. */
+interface EngineErrorShape {
+  code: string;
+  message?: string;
+}
+
 /** Shape the Apps Script engine returns on every response. */
 interface EngineResponse {
   ok: boolean;
   data?: unknown;
-  error?: DocHubError;
+  error?: EngineErrorShape;
 }
 
 function buildJsonHeaders(): Record<string, string> {
@@ -69,37 +75,30 @@ async function parseResponse(res: Response): Promise<unknown> {
   const text = await res.text();
 
   if (!res.ok) {
-    let engineError: DocHubError | undefined;
+    let engineError: EngineErrorShape | undefined;
     try {
       const parsed = JSON.parse(text) as Partial<EngineResponse>;
       if (parsed.error) engineError = parsed.error;
     } catch {
       // ignore parse failure
     }
-    if (engineError) throw engineError;
-    throw {
-      code: "HTTP_ERROR",
-      message: `HTTP ${res.status} ${res.statusText}`,
-      details: text.slice(0, 500),
-    } satisfies DocHubError;
+    if (engineError) throw new DocHubError(engineError.code, engineError.message ?? `Engine error: ${engineError.code}`, engineError);
+    throw new DocHubError("HTTP_ERROR", `HTTP ${res.status} ${res.statusText}`, text.slice(0, 500));
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw {
-      code: "PARSE_ERROR",
-      message: "Response from Apps Script Web App was not valid JSON.",
-      details: text.slice(0, 500),
-    } satisfies DocHubError;
+    throw new DocHubError("PARSE_ERROR", "Response from Apps Script Web App was not valid JSON.", text.slice(0, 500));
   }
 
   // Unwrap {ok, data, error} envelope if present
   const envelope = parsed as Partial<EngineResponse>;
   if (typeof envelope === "object" && envelope !== null && "ok" in envelope) {
     if (envelope.ok === false && envelope.error) {
-      throw envelope.error as DocHubError;
+      const e = envelope.error;
+      throw new DocHubError(e.code, e.message ?? `Engine error: ${e.code}`, e);
     }
     if (envelope.ok === true) {
       return envelope.data !== undefined ? envelope.data : envelope;

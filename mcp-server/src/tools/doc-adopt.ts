@@ -15,11 +15,8 @@ export const DocAdoptInputSchema = z.object({
       "Google Drive file ID of the file to adopt. The file should be in the _Imports/ folder."
     ),
   category: z
-    .string()
-    .min(1)
-    .describe(
-      "Category to assign this document to. One of: Legal, Comercial, Internos, Governance."
-    ),
+    .enum(["Legal", "Comercial", "Internos", "Governance"])
+    .describe("Category to assign this document to."),
   name: z
     .string()
     .min(1)

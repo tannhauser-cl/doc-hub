@@ -11,11 +11,9 @@ import { ManifestRow } from "../types.js";
 
 export const FindTemplatesInputSchema = z.object({
   category: z
-    .string()
+    .enum(["Legal", "Comercial", "Internos", "Governance"])
     .optional()
-    .describe(
-      "Filter by category. One of: Legal, Comercial, Internos, Governance."
-    ),
+    .describe("Filter by document category."),
   intent: z
     .string()
     .optional()
